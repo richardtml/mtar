@@ -1,2 +1,3 @@
-# mtar
-Multi-task action recognition models.
+# MTAR
+
+Multi-task action recognition experiments.

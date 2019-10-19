@@ -1,0 +1,18 @@
+# Single-task experiments
+
+from itertools import product
+
+splits = (1, 2, 3)
+models = ('ARConv2D', 'ARConv2D1D', 'ARRec', 'ARConv')
+
+
+rule ucf101:
+  run:
+    for (split, model) in product((splits, models)):
+      shell(
+        f"python train.py"
+        f" --ds ucf101"
+        f" --split {split}"
+        f" --model {model}"
+        f" --epochs 5"
+      )
