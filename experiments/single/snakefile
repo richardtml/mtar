@@ -14,5 +14,5 @@ rule ucf101:
         f" --ds ucf101"
         f" --split {split}"
         f" --model {model}"
-        f" --epochs 5"
+        f" --epochs 500"
       )
