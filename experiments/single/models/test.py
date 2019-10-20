@@ -23,15 +23,15 @@ class Experiment(BaseExperiment):
       ):
     self.init_params(locals())
 
-  def __call__(self, model):
-    test(model, self)
+  def __call__(self, model, num_classes):
+    test(model, num_classes, self)
 
 
-def test(class_name, cfg):
+def test(class_name, num_classes, cfg):
   """Test a model printing batch flow in call() method."""
-  clazz = get_model_class(class_name)
   x = np.zeros(cfg.batch_shape, dtype=np.float32)
-  model = clazz(cfg, verbose=True)
+  ModelClass = get_model_class(class_name)
+  model = ModelClass(cfg, num_classes, verbose=True)
   model(x)
 
 

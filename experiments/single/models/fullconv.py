@@ -7,10 +7,10 @@ import tensorflow as tf
 from tensorflow.keras import layers
 
 
-class ARConv(tf.keras.Model):
+class FullConv(tf.keras.Model):
 
-  def __init__(self, cfg, verbose=False):
-    super(ARConv, self).__init__()
+  def __init__(self, cfg, num_classes, verbose=False):
+    super(FullConv, self).__init__()
     self.verbose = verbose
     self.pad = layers.ZeroPadding2D(padding=(1, 0))
     self.conv2d = layers.Conv2D(
@@ -30,7 +30,7 @@ class ARConv(tf.keras.Model):
         padding='same', activation='relu')
     self.pool = layers.MaxPool1D(pool_size=2)
     self.flat = layers.Flatten()
-    self.fc = layers.Dense(101, activation='softmax')
+    self.fc = layers.Dense(num_classes, activation='softmax')
 
   def call(self, x):
     if self.verbose:
@@ -115,7 +115,7 @@ class ARConv(tf.keras.Model):
       print(f'flat {x.shape}')
 
     # (N, F/2) =>
-    # (N, 101)
+    # (N, C)
     x = self.fc(x)
     if self.verbose:
       print(f'fc {x.shape}')

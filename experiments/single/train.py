@@ -1,6 +1,7 @@
 """ train.py
 """
 
+import itertools as it
 import os
 from os.path import join
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -11,10 +12,13 @@ import tensorflow as tf
 from tqdm import trange
 
 import models
-from data.ucf101 import build_dataloader
+from data import build_dataloader
 from common import config
 from common.experiment import BaseExperiment
 from common.utils import timestamp
+
+
+tf.random.set_seed(config.get('SEED'))
 
 
 @tf.function
@@ -53,16 +57,17 @@ def train(cfg):
   print(f"Trainig {cfg.model_id}")
   cfg.save_params(cfg.experiment_dir)
 
-  ds_dir = join(config.get('DATASETS_DIR'), cfg.ds)
-  trn_dl = build_dataloader(ds_dir,
+  datasets_dir = config.get('DATASETS_DIR')
+  trn_dl = build_dataloader(datasets_dir, cfg.ds,
       'train', cfg.split, cfg.tbatch_size)
-  etrn_dl = build_dataloader(ds_dir,
+  etrn_dl = build_dataloader(datasets_dir, cfg.ds,
       'train', cfg.split, cfg.ebatch_size)
-  etst_dl = build_dataloader(ds_dir,
+  etst_dl = build_dataloader(datasets_dir, cfg.ds,
       'test', cfg.split, cfg.ebatch_size)
 
-  model_class = models.get_model_class(cfg.model_class_name)
-  model = model_class(cfg)
+  num_classes = 51 if cfg.ds == 'hmdb51' else 101
+  ModelClass = models.get_model_class(cfg.model_class_name)
+  model = ModelClass(cfg, num_classes)
 
   loss_fn = tf.keras.losses.SparseCategoricalCrossentropy()
   optimizer = tf.keras.optimizers.SGD(learning_rate=cfg.lr)
@@ -94,10 +99,10 @@ class Experiment(BaseExperiment):
       split=1,
       reps_size=512,
       tbatch_size=64,
-      ebatch_size=32,
+      ebatch_size=64,
       lr=1e-3,
-      epochs=500,
-      conv2d_filters=32,
+      epochs=5,
+      conv2d_filters=128,
       rec_type='gru', # gru or lstm
       rec_size=128,
       exp_name='single',
@@ -105,12 +110,12 @@ class Experiment(BaseExperiment):
     self.init_params(locals())
 
   def __call__(self,
-      ds, # ucf101
-      model # ARConv, ARConv2D, ARConv2D1D, ARRec
+      ds, # hmdb51, ucf101
+      model # Conv2D, Conv2D1D, FullConv Rec
       ):
     self.ds = ds
     self.model_class_name = model
-    self.model_id = f'{timestamp()}-{ds}-{model}'
+    self.model_id = f'{timestamp()}-{ds}-{self.split}-{model}'
     self.experiment_dir = join(config.get('RESULTS_DIR'),
         self.exp_name, self.model_id)
     train(self)

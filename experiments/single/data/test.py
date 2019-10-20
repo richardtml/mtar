@@ -10,23 +10,17 @@ import fire
 import numpy as np
 import torch
 
-import ucf101
+from builder import build_dataloader
 from common import config
 
 
-DATASETS_DIR = config.get('DATASETS_DIR')
-torch.manual_seed(config.get('SEED'))
-
-
-def test(ds='ucf101', zet='train', split=1, batch_size=1,
+def test(ds, subset='train', split=1, batch_size=1,
     num_batches=1, min_seq=16, max_seq=16, print_dropped=True):
   """Simple test function."""
-  if ds == 'ucf101':
-    ds_dir = os.path.join(DATASETS_DIR, 'ucf101')
-    build_dataloader = ucf101.build_dataloader
-
-  dl = build_dataloader(ds_dir, zet, split=split, batch_size=batch_size,
-      min_seq=min_seq, max_seq=max_seq, print_dropped=print_dropped)
+  datasets_dir = config.get('DATASETS_DIR')
+  dl = build_dataloader(datasets_dir, ds, subset, split=split,
+      batch_size=batch_size, min_seq=min_seq, max_seq=max_seq,
+      print_dropped=print_dropped)
   print('Traversing')
   for x, y in dl.take(num_batches):
     print(f'x.shape {x.shape}')

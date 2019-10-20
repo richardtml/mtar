@@ -5,6 +5,7 @@ UFC101 Dataset.
 
 
 import csv
+import glob
 from os.path import join
 
 import numpy as np
@@ -14,8 +15,8 @@ from torch.utils.data import Dataset
 from common.data import DataLoader
 
 
-class UCF101Dataset(Dataset):
-  """UCF101 dataset."""
+class HMDB51Dataset(Dataset):
+  """HMDB51 dataset."""
 
   def __init__(self, ds_dir, subset, split=1,
       min_seq=16, max_seq=16, print_dropped=False):
@@ -26,7 +27,7 @@ class UCF101Dataset(Dataset):
     if max_seq < min_seq:
       raise ValueError(f"invalid min_seq={min_seq}<{max_seq}=max_seq")
     self.max_seq = max_seq
-    zarr_dir = join(ds_dir, 'ucf101_resnet50_0512.zarr')
+    zarr_dir = join(ds_dir, 'hmdb51_resnet50_0512.zarr')
     self.ds = zarr.open(zarr_dir, 'r')
     self.names = load_split(ds_dir, subset, split)
     total = len(self.names)
@@ -68,11 +69,19 @@ class UCF101Dataset(Dataset):
 
 def load_split(ds_dir, subset, split):
   """Loads examples names in split."""
-  path = join(ds_dir, 'splits', f'{subset}list0{split}.txt')
+  pattern = join(ds_dir, 'splits', f'*split{split}.txt')
+  names = []
+  for filepath in sorted(glob.glob(pattern)):
+    names.extend(load_file_class(filepath, subset))
+  return names
+
+def load_file_class(path, subset):
+  subset = 1 if subset == 'train' else 2
   names = []
   with open(path, 'r') as f:
     reader = csv.reader(f, delimiter=' ')
     for row in reader:
-      name = row[0].split('/')[1].split('.')[0]
-      names.append(name)
+      if subset == int(row[1]):
+        name = row[0].split('.')[0]
+        names.append(name)
   return names

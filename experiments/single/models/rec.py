@@ -8,14 +8,14 @@ import tensorflow as tf
 from tensorflow.keras import layers
 
 
-class ARRec(tf.keras.Model):
+class Rec(tf.keras.Model):
 
-  def __init__(self, cfg, verbose=False):
-    super(ARRec, self).__init__()
+  def __init__(self, cfg, num_classes, verbose=False):
+    super(Rec, self).__init__()
     self.verbose = verbose
     rnn = layers.GRU if cfg.rec_type == 'gru' else layers.LSTM
     self.rec = rnn(units=cfg.rec_size)
-    self.fc = layers.Dense(101, activation='softmax')
+    self.fc = layers.Dense(num_classes, activation='softmax')
 
   def call(self, x):
 
@@ -23,13 +23,13 @@ class ARRec(tf.keras.Model):
       print(f'x {x.shape}')
 
     # (N, 16, 512) =>
-    # (N, C)
+    # (N, M)
     x = self.rec(x)
     if self.verbose:
       print(f'rec {x.shape}')
 
-    # (N, C) =>
-    # (N, 101)
+    # (N, M) =>
+    # (N, C)
     x = self.fc(x)
     if self.verbose:
       print(f'fc {x.shape}')
