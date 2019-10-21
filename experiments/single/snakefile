@@ -35,7 +35,7 @@ rule hmdb51:
 rule seminar:
   """Seminar 22/10/19"""
   run:
-    epochs = 1
+    epochs = 500
     dss = ('hmdb51', 'ucf101')
     models = ('Conv2D', 'Conv2D1D', 'FullConv')
     filters_sizes = (128, 256)
