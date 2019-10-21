@@ -35,19 +35,29 @@ rule hmdb51:
 rule seminar:
   """Seminar 22/10/19"""
   run:
-    epochs = 500
+    epochs = 1
     dss = ('hmdb51', 'ucf101')
     models = ('Conv2D', 'Conv2D1D', 'FullConv')
     filters_sizes = (128, 256)
-    dropouts = (0, 0.5)
-    configs = (dss, models, filters_sizes, dropouts)
-    for ds, model, conv2d_filters, dropout in product(*configs):
+    dropout = 0
+    configs = (dss, models, filters_sizes)
+    for ds, model, conv2d_filters in product(*configs):
       shell(
         "python train.py"
         f" --ds {ds}"
         f" --model {model}"
         f" --conv2d_filters {conv2d_filters}"
-        f" --dropout {dropout}"
+        f" --dropout 0"
+        f" --epochs {epochs}"
+      )
+    for ds, model, conv2d_filters in product(*configs):
+      shell(
+        "python train.py"
+        f" --ds {ds}"
+        f" --model {model}"
+        f" --conv2d_filters {conv2d_filters}"
+        f" --dropout 0.5"
+        f" --lr 1e-2"
         f" --epochs {epochs}"
       )
     rec_sizes = (128, 256)
