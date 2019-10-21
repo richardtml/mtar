@@ -6,7 +6,7 @@ Simple Conv2D model for Action Recognition.
 import tensorflow as tf
 from tensorflow.keras import layers
 
-from shared import HMDB51UCF101
+from experiments.multi.models.shared import HMDB51UCF101
 
 
 class Conv2D(HMDB51UCF101):

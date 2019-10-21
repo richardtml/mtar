@@ -7,7 +7,7 @@ Simple Recurrent model for Action Recognition.
 import tensorflow as tf
 from tensorflow.keras import layers
 
-from shared import HMDB51UCF101
+from experiments.multi.models.shared import HMDB51UCF101
 
 
 class Rec(HMDB51UCF101):
