@@ -3,9 +3,10 @@
 
 import itertools as it
 import os
+from functools import partial
 from itertools import zip_longest
 from os.path import join
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '4'
 
 import fire
 import numpy as np
@@ -22,20 +23,40 @@ from common.utils import timestamp
 tf.random.set_seed(config.get('SEED'))
 
 
-# def nzip(g):
+# def get_training_zip(strategy):
 #   return (for zip_longest(g))
 
 @tf.function
-def train_step(x_h, y_true_h, x_u, y_true_u, model, loss_fn, optimizer):
-    with tf.GradientTape() as tape:
-      y_pred_h, y_pred_u = model((x_h, x_u))
-      loss = 0
-      if x_h is not None:
-        loss += loss_fn(y_true_h, y_pred_h)
-      if x_u is not None:
-        loss += loss_fn(y_true_u, y_pred_u)
-    gradients = tape.gradient(loss, model.trainable_variables)
-    optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+def train_step(x_h, y_true_h, x_u, y_true_u,
+    model, loss_fn, optimizer, alphas):
+  with tf.GradientTape() as tape:
+    y_pred_h, y_pred_u = model((x_h, x_u), training=True)
+    loss = 0
+    if x_h is not None:
+      loss += loss_fn(y_true_h, y_pred_h) * alphas[0]
+    if x_u is not None:
+      loss += loss_fn(y_true_u, y_pred_u) * alphas[1]
+  gradients = tape.gradient(loss, model.trainable_variables)
+  optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+
+# def train_step(x_h, y_true_h, x_u, y_true_u, model, loss_fn, optimizer):
+#   print('--------------')
+#   with tf.GradientTape() as tape:
+#     y_pred_h, y_pred_u = model((x_h, x_u), training=True)
+#     if (x_h is not None) and (x_u is not None):
+#       loss = loss_fn(y_true_h, y_pred_h) + loss_fn(y_true_u, y_pred_u)
+#     else:
+#       if x_h is not None:
+#         print(f'x_h.shape {x_h.shape}')
+#         print(y_pred_u)
+#         loss = loss_fn(y_true_h, y_pred_h)
+#       if x_u is not None:
+#         print(f'x_u.shape {x_u.shape}')
+#         print(y_pred_h)
+#         loss = loss_fn(y_true_u, y_pred_u)
+#   gradients = tape.gradient(loss, model.trainable_variables)
+#   optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+
 
 def eval_step_set(model,
     dl_h, dl_u,
@@ -161,13 +182,15 @@ def train(cfg):
   #   tst_acc_epoch_h, tst_acc_epoch_u
   # )
 
+  lzip = partial(zip_longest, fillvalue=(None, None))
+  tzip = zip if cfg.train_strategy == 'shortest' else lzip
+
   weights_dir = join(cfg.experiment_dir, 'weights')
   for epoch in trange(cfg.epochs):
     # for (x_h, y_true_h), (x_u, y_true_u) in zip_longest(trn_dl_h, trn_dl_u):
-    for h, u in zip(trn_dl_h, trn_dl_u):
-      x_h, y_true_h = h if h is not None else (None, None)
-      x_u, y_true_u = u if u is not None else (None, None)
-      train_step(x_h, y_true_h, x_u, y_true_u, model, loss_fn, optimizer)
+    for (x_h, y_true_h), (x_u, y_true_u) in tzip(trn_dl_h, trn_dl_u):
+      train_step(x_h, y_true_h, x_u, y_true_u,
+          model, loss_fn, optimizer, cfg.alphas)
       eval_step(model, trn_eval_step, tst_eval_step)
     eval_epoch(epoch, trn_eval_epoch, tst_eval_epoch)
     model.save_weights(join(weights_dir, f'{epoch:03d}.ckpt'))
@@ -181,8 +204,12 @@ class Experiment(BaseExperiment):
       tbatch_size=64,
       ebatch_size=64,
       lr=1e-3,
+      alphas=(1, 1),
       epochs=5,
+      train_strategy='shortest', # shortest, longest
       conv2d_filters=128,
+      dropout=0.5,
+      batchnorm=True,
       rec_type='gru', # gru or lstm
       rec_size=128,
       exp_name='multi',

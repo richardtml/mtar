@@ -3,16 +3,35 @@
 from itertools import product
 
 
-epochs = 1500
-models = ('Conv2D', 'Conv2D1D', 'FullConv', 'Rec')
-configs = (models,)
+epochs = 500
+train_strategies = ('shortest', 'longest')
+batchnorms = (True, False)
 
 
-rule multi:
+rule seminar:
   run:
-    for (model,) in product(*configs):
+    models = ('Conv2D', 'Conv2D1D', 'FullConv')
+    filters_sizes = (128, 256)
+    dropouts = (0.0, 0.5)
+    configs = (models, filters_sizes, dropouts, train_strategies, batchnorms)
+    for model, conv2d_filters, dropout, ts, batchnorm in product(*configs):
       shell(
         "python train.py"
         f" --model {model}"
+        f" --conv2d_filters {conv2d_filters}"
+        f" --batchnorm {batchnorm}"
+        f" --dropout {dropout}"
         f" --epochs {epochs}"
+        f" --train_strategy {ts}"
+      )
+    rec_sizes = (128, 256)
+    configs = (rec_sizes, train_strategies, batchnorms)
+    for rec_size, ts, batchnorm in product(*configs):
+      shell(
+        "python train.py"
+        f" --model Rec"
+        f" --rec_size {rec_size}"
+        f" --batchnorm {batchnorm}"
+        f" --epochs {epochs}"
+        f" --train_strategy {ts}"
       )
