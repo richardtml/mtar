@@ -1,0 +1,18 @@
+# Multi-task experiments
+
+from itertools import product
+
+
+epochs = 1500
+models = ('Conv2D', 'Conv2D1D', 'FullConv', 'Rec')
+configs = (models,)
+
+
+rule multi:
+  run:
+    for model in product(*configs):
+      shell(
+        "python train.py"
+        f" --model {model}"
+        f" --epochs {epochs}"
+      )
