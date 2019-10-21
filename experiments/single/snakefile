@@ -3,7 +3,7 @@
 from itertools import product
 
 
-epochs = 250
+epochs = 500
 dss = ('hmdb51', 'ucf101')
 splits = (1,)
 models = ('Conv2D', 'Conv2D1D', 'FullConv', 'Rec')
