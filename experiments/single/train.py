@@ -24,7 +24,7 @@ tf.random.set_seed(config.get('SEED'))
 @tf.function
 def train_step(x, y_true, model, loss_fn, optimizer):
     with tf.GradientTape() as tape:
-      y_pred = model(x)
+      y_pred = model(x, training=True)
       loss = loss_fn(y_true, y_pred)
     gradients = tape.gradient(loss, model.trainable_variables)
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
@@ -40,18 +40,18 @@ def eval_step(model, trn, tst):
   eval_step_set(model, *trn)
   eval_step_set(model, *tst)
 
-def eval_epoch_set(epoch, loss_epoch, acc_epoch, writer):
+def eval_epoch_set(epoch, ds, loss_epoch, acc_epoch, writer):
   loss = loss_epoch.result().numpy() * 100
   acc = acc_epoch.result().numpy() * 100
   loss_epoch.reset_states()
   acc_epoch.reset_states()
   with writer.as_default():
-    tf.summary.scalar('loss', loss, epoch)
-    tf.summary.scalar('acc', acc, epoch)
+    tf.summary.scalar(f'loss/{ds}', loss, epoch)
+    tf.summary.scalar(f'acc/{ds}', acc, epoch)
 
-def eval_epoch(epoch, trn, tst):
-  eval_epoch_set(epoch, *trn)
-  eval_epoch_set(epoch, *tst)
+def eval_epoch(epoch, ds, trn, tst):
+  eval_epoch_set(epoch, ds, *trn)
+  eval_epoch_set(epoch, ds, *tst)
 
 def train(cfg):
   print(f"Trainig {cfg.model_id}")
@@ -89,7 +89,7 @@ def train(cfg):
     for x, y_true in trn_dl:
       train_step(x ,y_true, model, loss_fn, optimizer)
       eval_step(model, trn_eval_step, tst_eval_step)
-    eval_epoch(epoch, trn_eval_epoch, tst_eval_epoch)
+    eval_epoch(epoch, cfg.ds, trn_eval_epoch, tst_eval_epoch)
     model.save_weights(join(weights_dir, f'{epoch:03d}.ckpt'))
 
 
@@ -103,6 +103,7 @@ class Experiment(BaseExperiment):
       lr=1e-3,
       epochs=5,
       conv2d_filters=128,
+      dropout=0.5,
       rec_type='gru', # gru or lstm
       rec_size=128,
       exp_name='single',

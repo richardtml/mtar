@@ -14,10 +14,10 @@ class Rec(tf.keras.Model):
     super(Rec, self).__init__()
     self.verbose = verbose
     rnn = layers.GRU if cfg.rec_type == 'gru' else layers.LSTM
-    self.rec = rnn(units=cfg.rec_size)
-    self.fc = layers.Dense(num_classes, activation='softmax')
+    self.rec = rnn(units=cfg.rec_size, name='rec')
+    self.fc = layers.Dense(num_classes, activation='softmax', name='fc')
 
-  def call(self, x):
+  def call(self, x, training=False):
 
     if self.verbose:
       print(f'x {x.shape}')
