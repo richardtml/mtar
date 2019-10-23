@@ -21,49 +21,29 @@ class Conv2D(tf.keras.Model):
     self.fc = layers.Dense(num_classes, activation='softmax', name='fc')
 
   def call(self, x, training=False):
-    if self.verbose:
-      print(f'x {x.shape}')
-
-    # (N, 16, R) =>
-    # (N, 16, R, 1)
+    verbose = self.verbose
+    # (N, 16, R)
+    if verbose: print(f'x {x.shape}')
+    # (N, 16, R) => (N, 16, R, 1)
     x = tf.expand_dims(x, 3)
-    if self.verbose:
-      print(f'expand_dims {x.shape}')
-
-    # (N, 16, R, 1) =>
-    # (N, 18, R, 1)
+    if verbose: print(f'expand_dims {x.shape}')
+    # (N, 16, R, 1) => (N, 18, R, 1)
     x = self.pad(x)
-    if self.verbose:
-      print(f'pad {x.shape}')
-
-    # (N, 16, R, 1) =>
-    # (N, 16, 1, F)
+    if verbose: print(f'pad {x.shape}')
+    # (N, 16, R, 1) => (N, 16, 1, F)
     x = self.conv2d(x)
-    if self.verbose:
-      print(f'conv2d {x.shape}')
-
-    # (N, 16, 1, F) =>
-    # (N, 16, F)
+    if verbose: print(f'conv2d {x.shape}')
+    # (N, 16, 1, F) => (N, 16, F)
     x = tf.squeeze(x, 2)
-    if self.verbose:
-      print(f'squeeze {x.shape}')
-
-    # (N, 16, F/2) =>
-    # (N, 8, F/2)
+    if verbose: print(f'squeeze {x.shape}')
+    # (N, 16, F) => (N, 16, F)
     x = self.dropout(x, training)
-    if self.verbose:
-      print(f'dropout {x.shape}')
-
-    # (N, 8, F/2) =>
-    # (N, F/2)
+    if verbose: print(f'dropout {x.shape}')
+    # (N, 8, F) => (N, F)
     x = self.gap(x)
-    if self.verbose:
-      print(f'gap {x.shape}')
-
-    # (N, F/2) =>
-    # (N, C)
+    if verbose: print(f'gap {x.shape}')
+    # (N, F) => (N, C)
     x = self.fc(x)
-    if self.verbose:
-      print(f'fc {x.shape}')
-
+    if verbose: print(f'fc {x.shape}')
+    # (N, C)
     return x

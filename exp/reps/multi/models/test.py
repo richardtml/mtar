@@ -18,6 +18,7 @@ class Experiment(BaseExperiment):
       tasks=(True, True),
       batch_shape=(2, 1, 16, 512),
       reps_size = 512,
+      batchnorm=True,
       conv2d_filters=128,
       dropout=0.5,
       rec_type = 'gru',

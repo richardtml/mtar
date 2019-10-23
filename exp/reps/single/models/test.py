@@ -24,14 +24,14 @@ class Experiment(BaseExperiment):
       ):
     self.init_params(locals())
 
-  def __call__(self, model, num_classes=10):
-    test(model, num_classes, self)
+  def __call__(self, model, classes=10):
+    test(model, classes, self)
 
 
-def test(class_name, num_classes, cfg):
+def test(class_name, classes, cfg):
   """Test a model printing batch flow in call() method."""
   ModelClass = get_model_class(class_name)
-  model = ModelClass(cfg, num_classes, verbose=True)
+  model = ModelClass(cfg, classes, verbose=True)
   model.build(input_shape=cfg.batch_shape)
   model.summary()
 

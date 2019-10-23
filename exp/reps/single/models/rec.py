@@ -18,20 +18,14 @@ class Rec(tf.keras.Model):
     self.fc = layers.Dense(num_classes, activation='softmax', name='fc')
 
   def call(self, x, training=False):
-
-    if self.verbose:
-      print(f'x {x.shape}')
-
-    # (N, 16, 512) =>
-    # (N, M)
+    verbose = self.verbose
+    # (N, 16, R)
+    if verbose: print(f'x {x.shape}')
+    # (N, 16, R) => (N, M)
     x = self.rec(x)
-    if self.verbose:
-      print(f'rec {x.shape}')
-
-    # (N, M) =>
-    # (N, C)
+    if self.verbose: print(f'rec {x.shape}')
+    # (N, M) => (N, C)
     x = self.fc(x)
-    if self.verbose:
-      print(f'fc {x.shape}')
-
+    if self.verbose: print(f'fc {x.shape}')
+    # (N, C)
     return x
