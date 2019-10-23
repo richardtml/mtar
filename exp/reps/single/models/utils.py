@@ -4,7 +4,7 @@ Models utils.
 """
 
 import sys
-from exp.single.models import models
+from exp.reps.single.models import models
 
 
 def get_model_class(class_name):
