@@ -7,6 +7,7 @@ from os.path import join
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 import fire
+import mlflow
 import numpy as np
 import tensorflow as tf
 from tqdm import trange
@@ -17,8 +18,6 @@ from common import config
 from common.experiment import BaseExperiment
 from common.utils import timestamp
 
-
-tf.random.set_seed(config.get('SEED'))
 
 
 @tf.function
@@ -40,7 +39,7 @@ def eval_step(model, trn, tst):
   eval_step_set(model, *trn)
   eval_step_set(model, *tst)
 
-def eval_epoch_set(epoch, ds, loss_epoch, acc_epoch, writer):
+def eval_epoch_set(epoch, ds, subset, loss_epoch, acc_epoch, writer):
   loss = loss_epoch.result().numpy() * 100
   acc = acc_epoch.result().numpy() * 100
   loss_epoch.reset_states()
@@ -48,14 +47,28 @@ def eval_epoch_set(epoch, ds, loss_epoch, acc_epoch, writer):
   with writer.as_default():
     tf.summary.scalar(f'loss/{ds}', loss, epoch)
     tf.summary.scalar(f'acc/{ds}', acc, epoch)
+  mlflow.log_metric(f'{subset}-loss-{ds}', loss, epoch)
+  mlflow.log_metric(f'{subset}-acc-{ds}', acc, epoch)
 
 def eval_epoch(epoch, ds, trn, tst):
-  eval_epoch_set(epoch, ds, *trn)
-  eval_epoch_set(epoch, ds, *tst)
+  eval_epoch_set(epoch, ds, 'trn', *trn)
+  eval_epoch_set(epoch, ds, 'tst', *tst)
+
+
+def train_with_log(cfg):
+  mlflow.set_tracking_uri(join(config.get('RESULTS_DIR'), 'mlruns'))
+  mlflow.set_experiment(cfg.exp_name)
+  with mlflow.start_run(run_name=cfg.model_id):
+    params = {k: v for k, v in cfg.__dict__.items() if k[0] != '_'}
+    for k, v in params.items():
+      mlflow.log_param(k, v)
+    train(cfg)
+
 
 def train(cfg):
+  model_dir = join(config.get('RESULTS_DIR'), cfg.exp_name, cfg.model_id)
   print(f"Trainig {cfg.model_id}")
-  cfg.save_params(cfg.experiment_dir)
+  cfg.save_params(model_dir)
 
   datasets_dir = config.get('DATASETS_DIR')
   trn_dl = build_dataloader(datasets_dir, cfg.ds,
@@ -66,7 +79,7 @@ def train(cfg):
       'test', cfg.split, cfg.ebatch_size)
 
   num_classes = 51 if cfg.ds == 'hmdb51' else 101
-  ModelClass = models.get_model_class(cfg.model_class_name)
+  ModelClass = models.get_model_class(cfg.model)
   model = ModelClass(cfg, num_classes)
 
   loss_fn = tf.keras.losses.SparseCategoricalCrossentropy()
@@ -76,15 +89,15 @@ def train(cfg):
   tst_loss_epoch = tf.keras.metrics.SparseCategoricalCrossentropy()
   tst_acc_epoch = tf.keras.metrics.SparseCategoricalAccuracy()
 
-  trn_writer = tf.summary.create_file_writer(join(cfg.experiment_dir, 'trn'))
-  tst_writer = tf.summary.create_file_writer(join(cfg.experiment_dir, 'tst'))
+  trn_writer = tf.summary.create_file_writer(join(model_dir, 'trn'))
+  tst_writer = tf.summary.create_file_writer(join(model_dir, 'tst'))
 
   trn_eval_step = (etrn_dl, trn_loss_epoch, trn_acc_epoch)
   tst_eval_step = (etst_dl, tst_loss_epoch, tst_acc_epoch)
   trn_eval_epoch = (trn_loss_epoch, trn_acc_epoch, trn_writer)
   tst_eval_epoch = (tst_loss_epoch, tst_acc_epoch, tst_writer)
 
-  weights_dir = join(cfg.experiment_dir, 'weights')
+  weights_dir = join(model_dir, 'weights')
   for epoch in trange(cfg.epochs):
     for x, y_true in trn_dl:
       train_step(x ,y_true, model, loss_fn, optimizer)
@@ -103,6 +116,7 @@ class Experiment(BaseExperiment):
       lr=1e-3,
       epochs=5,
       conv2d_filters=128,
+      conv1d_filters=128,
       dropout=0.5,
       rec_type='gru', # gru or lstm
       rec_size=128,
@@ -112,15 +126,14 @@ class Experiment(BaseExperiment):
 
   def __call__(self,
       ds, # hmdb51, ucf101
-      model # Conv2D, Conv2D1D, FullConv Rec
+      model # Conv2D, Conv2D1D, FullConv, Rec
       ):
     self.ds = ds
-    self.model_class_name = model
-    self.model_id = f'{timestamp()}-{ds}-{self.split}-{model}'
-    self.experiment_dir = join(config.get('RESULTS_DIR'),
-        self.exp_name, self.model_id)
-    train(self)
+    self.model = model
+    self.model_id = f'{timestamp()}-{ds}-{model}'
+    train_with_log(self)
 
 
 if __name__ == '__main__':
+  tf.random.set_seed(config.get('SEED'))
   fire.Fire(Experiment)

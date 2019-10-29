@@ -13,7 +13,6 @@ class FullConv(HMDB51UCF101):
 
   def __init__(self, cfg, verbose=False):
     super(FullConv, self).__init__(cfg.batchnorm, verbose)
-    self.verbose = verbose
     div = 1
     self.pad = layers.ZeroPadding2D(padding=(1, 0), name='zpad2d')
     self.conv2d = layers.Conv2D(
@@ -36,69 +35,53 @@ class FullConv(HMDB51UCF101):
     self.flat = layers.Flatten(name='flat')
 
   def call_shared(self, x, training, verbose):
-    # (N, 16, R) =>
-    # (N, 16, R, 1)
+    # (N, 16, R) => (N, 16, R, 1)
     x = tf.expand_dims(x, 3)
     if verbose: print(f'expand_dims {x.shape}')
-    # (N, 16, R, 1) =>
-    # (N, 18, R, 1)
+    # (N, 16, R, 1) => (N, 18, R, 1)
     x = self.pad(x)
     if verbose: print(f'pad {x.shape}')
-    # (N, 16, R, 1) =>
-    # (N, 16, 1, F)
+    # (N, 18, R, 1) => (N, 16, 1, F)
     x = self.conv2d(x)
     if verbose: print(f'conv2d {x.shape}')
-    # (N, 16, 1, F) =>
-    # (N, 16, F)
+    # (N, 16, 1, F) => (N, 16, F)
     x = tf.squeeze(x, 2)
     if verbose: print(f'squeeze {x.shape}')
-    # (N, 16, F) =>
-    # (N, 16, F)
+    # (N, 16, F) => (N, 16, F)
     x = self.dropout1(x, training)
     if verbose: print(f'dropout1 {x.shape}')
-    # (N, 16, F) =>
-    # (N, 8, F)
+    # (N, 16, F) => (N, 8, F)
     x = self.pool1d(x)
     if verbose: print(f'pool1d {x.shape}')
-    # (N, 8, F) =>
-    # (N, 8, F)
+    # (N, 8, F) => (N, 8, F/D)
     x = self.conv1d1(x)
     if verbose: print(f'conv1d1 {x.shape}')
-    # (N, 8, F) =>
-    # (N, 8, F)
+    # (N, 8, F/D) => (N, 8, F/D)
     x = self.dropout2(x, training)
     if verbose: print(f'dropout2 {x.shape}')
-    # (N, 8, F) =>
-    # (N, 4, F)
+    # (N, 8, F/D) => (N, 4, F/D)
     x = self.pool1d(x)
     if verbose: print(f'pool1d {x.shape}')
-    # (N, 4, F) =>
-    # (N, 4, F)
+    # (N, 4, F/D) => (N, 4, F/D)
     x = self.conv1d2(x)
     if verbose: print(f'conv1d2 {x.shape}')
-    # (N, 4, F) =>
-    # (N, 4, F)
+    # (N, 4, F/D) => (N, 4, F/D)
     x = self.dropout3(x, training)
     if verbose: print(f'dropout3 {x.shape}')
-    # (N, 4, F) =>
-    # (N, 2, F)
+    # (N, 4, F/D) => (N, 2, F/D)
     x = self.pool1d(x)
     if verbose: print(f'pool1d {x.shape}')
-    # (N, 2, F) =>
-    # (N, 2, F)
+    # (N, 2, F/D) => (N, 2, F/D)
     x = self.conv1d3(x)
     if verbose: print(f'conv1d3 {x.shape}')
-    # (N, 2, F) =>
-    # (N, 2, F)
+    # (N, 2, F/D) => (N, 2, F/D)
     x = self.dropout4(x, training)
     if verbose: print(f'dropout4 {x.shape}')
-    # (N, 2, F) =>
-    # (N, 1, F)
+    # (N, 2, F/D) => (N, 1, F/D)
     x = self.pool1d(x)
     if verbose: print(f'pool1d {x.shape}')
-    # (N, 1, F) =>
-    # (N, F)
+    # (N, 1, F/D) => (N, F/D)
     x = self.flat(x)
     if verbose: print(f'flat {x.shape}')
-    # (N, F)
+    # (N, F/D)
     return x

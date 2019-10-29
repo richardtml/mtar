@@ -18,6 +18,7 @@ class Experiment(BaseExperiment):
       batch_shape=(1, 16, 512),
       reps_size = 512,
       conv2d_filters=128,
+      conv1d_filters=128,
       dropout=0.5,
       rec_type = 'gru',
       rec_size = 128,
@@ -29,10 +30,10 @@ class Experiment(BaseExperiment):
 
 
 def test(class_name, classes, cfg):
-  """Test a model printing batch flow in call() method."""
+  """Tests a model printing batch flow in call() method."""
   ModelClass = get_model_class(class_name)
   model = ModelClass(cfg, classes, verbose=True)
-  model.build(input_shape=cfg.batch_shape)
+  model.build(input_shape=tuple(cfg.batch_shape))
   model.summary()
 
 

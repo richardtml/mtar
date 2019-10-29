@@ -30,19 +30,11 @@ class Experiment(BaseExperiment):
     test(model, self)
 
 
-# def test(class_name, cfg):
-#   """Test a model printing batch flow in call() method."""
-#   x = np.zeros(cfg.batch_shape, dtype=np.float32)
-#   xs = [x if t else None for t in cfg.tasks]
-#   ModelClass = get_model_class(class_name)
-#   model = ModelClass(cfg, verbose=True)
-#   model(xs)
-
 def test(class_name, cfg):
   """Test a model printing batch flow in call() method."""
   ModelClass = get_model_class(class_name)
   model = ModelClass(cfg, verbose=True)
-  model.build(input_shape=cfg.batch_shape)
+  model.build(input_shape=tuple(cfg.batch_shape))
   model.summary()
 
 

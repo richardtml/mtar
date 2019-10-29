@@ -17,7 +17,7 @@ class Conv2D(tf.keras.Model):
         filters=cfg.conv2d_filters, kernel_size=(3, cfg.reps_size),
         padding='valid', activation='relu', name='conv2d')
     self.dropout = layers.SpatialDropout1D(cfg.dropout, name='do1d')
-    self.gap = layers.GlobalAveragePooling1D(name='gap1d')
+    self.gap = layers.GlobalAveragePooling1D(name='gap')
     self.fc = layers.Dense(num_classes, activation='softmax', name='fc')
 
   def call(self, x, training=False):
@@ -30,7 +30,7 @@ class Conv2D(tf.keras.Model):
     # (N, 16, R, 1) => (N, 18, R, 1)
     x = self.pad(x)
     if verbose: print(f'pad {x.shape}')
-    # (N, 16, R, 1) => (N, 16, 1, F)
+    # (N, 18, R, 1) => (N, 16, 1, F)
     x = self.conv2d(x)
     if verbose: print(f'conv2d {x.shape}')
     # (N, 16, 1, F) => (N, 16, F)
@@ -39,7 +39,7 @@ class Conv2D(tf.keras.Model):
     # (N, 16, F) => (N, 16, F)
     x = self.dropout(x, training)
     if verbose: print(f'dropout {x.shape}')
-    # (N, 8, F) => (N, F)
+    # (N, 16, F) => (N, F)
     x = self.gap(x)
     if verbose: print(f'gap {x.shape}')
     # (N, F) => (N, C)

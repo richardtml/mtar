@@ -18,10 +18,9 @@ class Rec(HMDB51UCF101):
     rnn = layers.GRU if cfg.rec_type == 'gru' else layers.LSTM
     self.rec = rnn(units=cfg.rec_size, name='rec')
 
-
   def call_shared(self, x, training, verbose):
-    # (N, 16, 512) =>
-    # (N, M)
+    # (N, 16, 512) => (N, M)
     x = self.rec(x)
     if verbose: print(f'rec {x.shape}')
+    # (N, M)
     return x

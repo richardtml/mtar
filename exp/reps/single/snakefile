@@ -1,5 +1,8 @@
 # Single-task experiments
 
+include: "exp/conv.smk"
+
+
 from itertools import product
 
 
@@ -70,3 +73,23 @@ rule seminar:
         f" --rec_size {rec_size}"
         f" --epochs {epochs}"
       )
+
+
+# rule conv:
+#   """Test number of params in conv2d and conv1d layers"""
+#   run:
+#     epochs = 1
+#     models = ('Conv2D', 'Conv2D1D', 'FullConv')
+#     conv_filters = (96, 128, 160)
+#     configs = (models, conv_filters, conv_filters)
+#     for model, conv2d_filters, conv1d_filters in product(*configs):
+#       shell(
+#         "python train.py"
+#         f" --exp_name {rule.name}"
+#         f" --ds ucf101"
+#         f" --model {model}"
+#         f" --conv2d_filters {conv2d_filters}"
+#         f" --conv1d_filters {conv1d_filters}"
+#         f" --dropout 0.5"
+#         f" --epochs {epochs}"
+#       )
