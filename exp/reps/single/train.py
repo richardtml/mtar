@@ -58,7 +58,7 @@ def eval_epoch(epoch, ds, trn, tst):
 def train_with_log(cfg):
   mlflow.set_tracking_uri(join(config.get('RESULTS_DIR'), 'mlruns'))
   mlflow.set_experiment(cfg.exp_name)
-  with mlflow.start_run(run_name=cfg.model_id):
+  with mlflow.start_run(run_name=cfg.run):
     params = {k: v for k, v in cfg.__dict__.items() if k[0] != '_'}
     for k, v in params.items():
       mlflow.log_param(k, v)
@@ -66,8 +66,8 @@ def train_with_log(cfg):
 
 
 def train(cfg):
-  model_dir = join(config.get('RESULTS_DIR'), cfg.exp_name, cfg.model_id)
-  print(f"Trainig {cfg.model_id}")
+  model_dir = join(config.get('RESULTS_DIR'), cfg.exp_name, cfg.run)
+  print(f"Trainig {cfg.run}")
   cfg.save_params(model_dir)
 
   datasets_dir = config.get('DATASETS_DIR')
@@ -130,7 +130,7 @@ class Experiment(BaseExperiment):
       ):
     self.ds = ds
     self.model = model
-    self.model_id = f'{timestamp()}-{ds}-{model}'
+    self.run = f'{timestamp()}-{ds}-{model}'
     train_with_log(self)
 
 
