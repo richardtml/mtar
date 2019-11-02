@@ -54,30 +54,33 @@ def load_model(run_dir, cfg, epoch):
   return model
 
 def eval_subset(model, dl):
+  loss_fn = tf.keras.metrics.SparseCategoricalCrossentropy()
   acc_fn = tf.keras.metrics.SparseCategoricalAccuracy()
   for x, y_true in dl:
     y_pred = model(x)
+    loss_fn(y_true, y_pred)
     acc_fn(y_true, y_pred)
+  loss = loss_fn.result().numpy() * 100
   acc = acc_fn.result().numpy() * 100
-  return acc
+  return loss, acc
 
 
-def eval_run(run_dir, batch_size=128, epoch=None,
-    leave=True, trn_dl=None, tst_dl=None, verbose=True):
+def eval_run(run_dir, batch_size=128,
+    epoch=None, verbose=True, tqdm_leave=True):
+
   cfg = load_config(run_dir)
-  if not trn_dl:
-    datasets_dir = config.get('DATASETS_DIR')
-    trn_dl = build_dataloader(datasets_dir,
-        cfg.ds, 'train', cfg.split, batch_size)
-    tst_dl = build_dataloader(datasets_dir,
-        cfg.ds, 'test', cfg.split, batch_size)
+  datasets_dir = config.get('DATASETS_DIR')
+  trn_dl = build_dataloader(datasets_dir,
+      cfg.ds, cfg.split, 'train', batch_size)
+  tst_dl = build_dataloader(datasets_dir,
+      cfg.ds, cfg.split, 'test', batch_size)
 
   if epoch:
     print(f'Evaluating {cfg.run} at epoch {epoch}')
     model = load_model(run_dir, cfg, epoch)
-    trn_acc = eval_subset(model, trn_dl)
-    tst_acc = eval_subset(model, tst_dl)
-    print(f'{cfg.run} acc {trn_acc} {tst_acc}')
+    trn_loss, trn_acc = eval_subset(model, trn_dl)
+    tst_loss, tst_acc = eval_subset(model, tst_dl)
+    print(f'{cfg.run} loss=({trn_loss},{tst_loss}) acc=({trn_acc},{tst_acc})')
     return
 
   trn_dir = join(run_dir, 'etrn')
@@ -88,19 +91,22 @@ def eval_run(run_dir, batch_size=128, epoch=None,
     shutil.rmtree(tst_dir)
   trn_writer = tf.summary.create_file_writer(trn_dir)
   tst_writer = tf.summary.create_file_writer(tst_dir)
-  best_acc, best_epoch = 0, 0
+
   if verbose:
     print(f'Evaluating {cfg.run}')
-  for epoch in trange(cfg.epochs, leave=leave):
+  best_acc, best_epoch = 0, 0
+  for epoch in trange(cfg.epochs, leave=tqdm_leave):
     model = load_model(run_dir, cfg, epoch)
-    trn_acc = eval_subset(model, trn_dl)
-    tst_acc = eval_subset(model, tst_dl)
-    if trn_acc > best_acc:
-      best_acc, best_epoch = trn_acc, epoch
+    trn_loss, trn_acc = eval_subset(model, trn_dl)
+    tst_loss, tst_acc = eval_subset(model, tst_dl)
     with trn_writer.as_default():
+      tf.summary.scalar(f'loss/{cfg.ds}', trn_loss, epoch)
       tf.summary.scalar(f'acc/{cfg.ds}', trn_acc, epoch)
     with tst_writer.as_default():
+      tf.summary.scalar(f'loss/{cfg.ds}', tst_loss, epoch)
       tf.summary.scalar(f'acc/{cfg.ds}', tst_acc, epoch)
+    if tst_acc > best_acc:
+      best_acc, best_epoch = tst_acc, epoch
 
   firsts = ['run', 'ds', 'split']
   columns = [k for k in sorted(cfg.keys()) if k not in firsts]
@@ -113,22 +119,15 @@ def eval_run(run_dir, batch_size=128, epoch=None,
   if verbose:
     print(df.head())
 
-def eval_exp(exp_dir, batch_size=128):
-  runs_names = sorted(os.listdir(exp_dir))
-  run_dir = join(exp_dir, runs_names[0])
-  datasets_dir = config.get('DATASETS_DIR')
-  cfg = load_config(run_dir)
-  trn_dl = build_dataloader(datasets_dir,
-      cfg.ds, 'train', cfg.split, batch_size)
-  tst_dl = build_dataloader(datasets_dir,
-      cfg.ds, 'test', cfg.split, batch_size)
 
+def eval_exp(exp_dir, batch_size=128):
   dfs = []
+  runs_names = sorted(os.listdir(exp_dir))
   for run_name in tqdm(runs_names):
     run_dir = join(exp_dir, run_name)
     if isdir(run_dir):
-      eval_run(run_dir, batch_size, epoch=None, leave=False,
-          trn_dl=trn_dl, tst_dl=tst_dl, verbose=False)
+      eval_run(run_dir, batch_size, epoch=None,
+          verbose=False, tqdm_leave=False)
       run_df = pd.read_csv(join(run_dir, 'results.csv'))
       dfs.append(run_df)
       df = pd.concat(dfs)

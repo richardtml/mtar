@@ -72,11 +72,11 @@ def train(cfg):
 
   datasets_dir = config.get('DATASETS_DIR')
   trn_dl = build_dataloader(datasets_dir, cfg.ds,
-      'train', cfg.split, cfg.tbatch_size)
+      cfg.split, 'train', cfg.tbatch_size)
   etrn_dl = build_dataloader(datasets_dir, cfg.ds,
-      'train', cfg.split, cfg.ebatch_size)
+      cfg.split, 'train', cfg.ebatch_size)
   etst_dl = build_dataloader(datasets_dir, cfg.ds,
-      'test', cfg.split, cfg.ebatch_size)
+      cfg.split, 'test', cfg.ebatch_size)
 
   num_classes = 51 if cfg.ds == 'hmdb51' else 101
   ModelClass = models.get_model_class(cfg.model)

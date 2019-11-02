@@ -14,13 +14,13 @@ from builder import build_dataloader
 from common import config
 
 
-def test(ds, subset='train', split=1, batch_size=1,
-    num_batches=1, min_seq=16, max_seq=16, print_dropped=True):
+def test(ds, subset='train', split=1, batch_size=1, num_batches=1,
+    min_seq=16, max_seq=16, verbose=True, print_dropped=True):
   """Simple test function."""
   datasets_dir = config.get('DATASETS_DIR')
-  dl = build_dataloader(datasets_dir, ds, subset, split=split,
+  dl = build_dataloader(datasets_dir, ds, split=split, subset=subset,
       batch_size=batch_size, min_seq=min_seq, max_seq=max_seq,
-      print_dropped=print_dropped)
+      verbose=verbose, print_dropped=print_dropped)
   print('Traversing')
   for x, y in dl.take(num_batches):
     print(f'x.shape {x.shape}')
