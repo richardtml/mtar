@@ -27,7 +27,7 @@ def build_dataloader(datasets_dir, ds, split, subset, batch_size,
     raise ValueError(f'invalid ds={ds}')
   ds_dir = join(datasets_dir, ds)
   if verbose:
-    print(f'Building dataset for {ds}')
+    print(f'Building dataloader for {ds}')
   ds = Dataset(ds_dir, split=split, subset=subset, min_seq=min_seq,
       max_seq=max_seq, verbose=verbose, print_dropped=print_dropped)
   dl = DataLoader(ds, batch_size=batch_size,
