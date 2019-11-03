@@ -1,11 +1,10 @@
-""" ucf101.py
+""" hmdb51.py
 
-UFC101 Dataset.
+HMDB51 Dataset.
 """
 
 
 import csv
-import glob
 from os.path import join
 
 import numpy as np
@@ -27,7 +26,7 @@ class HMDB51Dataset(Dataset):
     if max_seq < min_seq:
       raise ValueError(f"invalid min_seq={min_seq}<{max_seq}=max_seq")
     self.max_seq = max_seq
-    zarr_dir = join(ds_dir, 'hmdb51_resnet50_0512.zarr')
+    zarr_dir = join(ds_dir, 'resnet50_0512.zarr')
     ds = zarr.open(zarr_dir, 'r')
     splits = zarr.open(join(ds_dir, 'splits.zarr'), 'r')
     names = list(splits[str(split)][subset][:])
