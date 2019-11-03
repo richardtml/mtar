@@ -17,7 +17,8 @@ torch.manual_seed(config.get('SEED'))
 
 
 def build_dataloader(datasets_dir, ds, split, subset, batch_size,
-    min_seq=16, max_seq=16, num_workers=4, verbose=False, print_dropped=False):
+    min_seq=16, max_seq=16, shuffle=True, num_workers=4,
+    verbose=False, print_dropped=False):
   """Builds a Dataloader."""
   if ds == 'hmdb51':
     Dataset = HMDB51Dataset
@@ -31,5 +32,5 @@ def build_dataloader(datasets_dir, ds, split, subset, batch_size,
   ds = Dataset(ds_dir, split=split, subset=subset, min_seq=min_seq,
       max_seq=max_seq, verbose=verbose, print_dropped=print_dropped)
   dl = DataLoader(ds, batch_size=batch_size,
-      shuffle=True, num_workers=num_workers)
+      shuffle=shuffle, num_workers=num_workers)
   return dl

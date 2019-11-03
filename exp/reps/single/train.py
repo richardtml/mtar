@@ -111,7 +111,7 @@ class Experiment(BaseExperiment):
   def __init__(self,
       split=1,
       reps_size=512,
-      tbatch_size=64,
+      tbatch_size=128,
       ebatch_size=64,
       lr=1e-3,
       epochs=5,

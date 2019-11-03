@@ -70,10 +70,10 @@ def eval_run(run_dir, batch_size=128,
 
   cfg = load_config(run_dir)
   datasets_dir = config.get('DATASETS_DIR')
-  trn_dl = build_dataloader(datasets_dir,
-      cfg.ds, cfg.split, 'train', batch_size)
-  tst_dl = build_dataloader(datasets_dir,
-      cfg.ds, cfg.split, 'test', batch_size)
+  trn_dl = build_dataloader(datasets_dir, cfg.ds,
+      cfg.split, 'train', batch_size, shuffle=False)
+  tst_dl = build_dataloader(datasets_dir, cfg.ds,
+      cfg.split, 'test', batch_size, shuffle=False)
 
   if epoch:
     print(f'Evaluating {cfg.run} at epoch {epoch}')

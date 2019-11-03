@@ -1,6 +1,8 @@
 # Single-task experiments
 
 include: "exp/conv.smk"
+include: "exp/seminar.smk"
+include: "exp/single.smk"
 
 
 from itertools import product
