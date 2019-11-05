@@ -2,7 +2,7 @@
 
 from itertools import product
 
-rule conv_filters:
+rule single:
   run:
     epochs = config["epochs"] if "epochs" in config else 500
     dss = ('hmdb51', 'ucf101')
