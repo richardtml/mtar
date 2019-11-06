@@ -2,7 +2,7 @@
 
 from itertools import product
 
-rule mean:
+rule smean:
   run:
     lr = config.get('lr', 1e-3)
     epochs = config.get('epochs', 500)
@@ -13,7 +13,7 @@ rule mean:
     for ds, model, ifc in product(*configs):
       shell(
         "python train.py"
-        f" --exp_name smean"
+        f" --exp_name {rule}"
         f" --ds {ds}"
         f" --model {model}"
         f" --ifc {ifc}"

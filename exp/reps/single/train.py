@@ -118,6 +118,7 @@ class Experiment(BaseExperiment):
       conv2d_filters=128,
       conv1d_filters=128,
       dropout=0.5,
+      rec_layers = 1,
       rec_type='gru', # gru or lstm
       rec_size=128,
       ifc=0,
