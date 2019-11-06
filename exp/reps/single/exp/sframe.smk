@@ -2,7 +2,7 @@
 
 from itertools import product
 
-rule mean:
+rule sframe:
   run:
     lr = config.get('lr', 1e-3)
     epochs = config.get('epochs', 500)
