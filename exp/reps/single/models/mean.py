@@ -12,6 +12,8 @@ class FCMean(tf.keras.Model):
   def __init__(self, cfg, num_classes, verbose=False):
     super(FCMean, self).__init__()
     self.verbose = verbose
+    if cfg.ifc:
+      self.ifc = layers.Dense(num_classes, activation='relu', name='ifc')
     self.fc = layers.Dense(num_classes, activation='softmax', name='fc')
     self.gap = layers.GlobalAveragePooling1D(name='gap')
 
@@ -23,6 +25,10 @@ class FCMean(tf.keras.Model):
     # (N, 16, R) => (N*16, R)
     x = tf.reshape(x, (-1, shape[2]))
     if verbose: print(f'reshape {x.shape}')
+    # (N*16, R) => (N*16, C)
+    if hasattr(self, 'ifc'):
+      x = self.ifc(x)
+      if verbose: print(f'ifc {x.shape}')
     # (N*16, R) => (N*16, C)
     x = self.fc(x)
     if verbose: print(f'fc {x.shape}')

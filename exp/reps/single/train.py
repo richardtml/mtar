@@ -120,6 +120,7 @@ class Experiment(BaseExperiment):
       dropout=0.5,
       rec_type='gru', # gru or lstm
       rec_size=128,
+      ifc=0,
       exp_name='single',
       ):
     self.init_params(locals())

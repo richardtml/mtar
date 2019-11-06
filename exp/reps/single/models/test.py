@@ -22,6 +22,7 @@ class Experiment(BaseExperiment):
       dropout=0.5,
       rec_type = 'gru',
       rec_size = 128,
+      ifc = False,
       ):
     self.init_params(locals())
 
