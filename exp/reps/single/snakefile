@@ -3,4 +3,5 @@
 include: "exp/conv.smk"
 include: "exp/mean.smk"
 include: "exp/seminar.smk"
+include: "exp/sframe.smk"
 include: "exp/single.smk"
