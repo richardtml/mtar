@@ -42,7 +42,7 @@ def load_config(run_dir):
 def load_model(run_dir, cfg, epoch):
   model_class_name = get_class(run_dir)
   weights_dir = join(run_dir, 'weights')
-  if epoch:
+  if epoch is not None:
     checkpoint = join(weights_dir, f'{epoch:03d}.ckpt')
   else:
     checkpoint = tf.train.latest_checkpoint(weights_dir)
@@ -75,12 +75,16 @@ def eval_run(run_dir, batch_size=128,
   tst_dl = build_dataloader(datasets_dir, cfg.ds,
       cfg.split, 'test', batch_size, shuffle=False)
 
-  if epoch:
+  if epoch is not None:
     print(f'Evaluating {cfg.run} at epoch {epoch}')
     model = load_model(run_dir, cfg, epoch)
     trn_loss, trn_acc = eval_subset(model, trn_dl)
     tst_loss, tst_acc = eval_subset(model, tst_dl)
-    print(f'{cfg.run} loss=({trn_loss},{tst_loss}) acc=({trn_acc},{tst_acc})')
+    print(
+      f'{cfg.run}'
+      f' loss=({trn_loss:.2f},{tst_loss:.2f})'
+      f' acc=({trn_acc:.2f},{tst_acc:.2f})'
+    )
     return
 
   trn_dir = join(run_dir, 'etrn')
