@@ -126,16 +126,15 @@ def eval_run(run_dir, batch_size=128,
 
 def eval_exp(exp_dir, batch_size=128):
   dfs = []
-  runs_names = sorted(os.listdir(exp_dir))
-  for run_name in tqdm(runs_names):
-    run_dir = join(exp_dir, run_name)
-    if isdir(run_dir):
-      eval_run(run_dir, batch_size, epoch=None,
-          verbose=False, tqdm_leave=False)
-      run_df = pd.read_csv(join(run_dir, 'results.csv'))
-      dfs.append(run_df)
-      df = pd.concat(dfs)
-      df.to_csv(f'{exp_dir}/results.csv')
+  runs_dirs = [join(exp_dir, d) for d in os.listdir(exp_dir)]
+  runs_dirs = sorted(d for d in runs_dirs if isdir(d))
+  for run_dir in tqdm(runs_dirs):
+    eval_run(run_dir, batch_size, epoch=None,
+        verbose=False, tqdm_leave=False)
+    run_df = pd.read_csv(join(run_dir, 'results.csv'))
+    dfs.append(run_df)
+    df = pd.concat(dfs)
+    df.to_csv(f'{exp_dir}/results.csv')
 
 
 if __name__ == '__main__':
