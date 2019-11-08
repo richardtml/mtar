@@ -1,6 +1,6 @@
 # Single-task experiments
 
-include: "exp/conv.smk"
+include: "exp/sconv.smk"
 include: "exp/smean.smk"
 include: "exp/seminar.smk"
 include: "exp/sframe.smk"

@@ -1,22 +1,23 @@
-"""Test number of filters for conv2d and conv1d archs"""
+"""Study convolutional architectures"""
 
 from itertools import product
 
-rule conv_filters:
+rule sconv:
   run:
-    epochs = config["epochs"] if "epochs" in config else 500
+    epochs = config.get('epochs', 500)
     dss = ('hmdb51', 'ucf101')
     models = ('Conv2D', 'Conv2D1D', 'FullConv')
-    conv_filters = (96, 128, 160)
-    configs = (dss, models, conv_filters, conv_filters)
-    for ds, model, conv2d_filters, conv1d_filters in product(*configs):
+    filters = (96, 128, 160, 192)
+    dropouts = (0.0, 0.5)
+    configs = (dss, models, filters, filters, dropouts)
+    for ds, model, conv2d, conv1d, do in product(*configs):
       shell(
         "python train.py"
         f" --exp_name {rule}"
         f" --ds {ds}"
         f" --model {model}"
-        f" --conv2d_filters {conv2d_filters}"
-        f" --conv1d_filters {conv1d_filters}"
-        f" --dropout 0.5"
+        f" --conv2d_filters {conv2d}"
+        f" --conv1d_filters {conv1d}"
+        f" --dropout {do}"
         f" --epochs {epochs}"
       )
