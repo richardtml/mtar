@@ -7,7 +7,7 @@ rule srec:
     lr = config.get('lr', 1e-3)
     epochs = config.get('epochs', 500)
     dss = ('hmdb51', 'ucf101')
-    rec_types = ('gru, lstm')
+    rec_types = ('gru', 'lstm')
     rec_layerss = (1, 2, 4)
     configs = (dss, rec_types, rec_layerss)
     for ds, rec_type, rec_layers in product(*configs):
