@@ -4,6 +4,7 @@ from itertools import product
 
 rule sconv:
   run:
+    lr = config.get('lr', 1e-3)
     epochs = config.get('epochs', 500)
     dss = ('hmdb51', 'ucf101')
     models = ('Conv2D', 'Conv2D1D')
@@ -20,6 +21,7 @@ rule sconv:
         f" --conv1d_filters {conv1d}"
         f" --dropout 0.5"
         f" --epochs {epochs}"
+        f" --lr {lr}"
       )
 
 # rule sconv:
