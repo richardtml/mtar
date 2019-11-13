@@ -4,7 +4,7 @@ from itertools import product
 
 rule sconv:
   run:
-    lr = config.get('lr', 1e-3)
+    lr = config.get('lr', 5e-3)
     epochs = config.get('epochs', 500)
     dss = ('hmdb51', 'ucf101')
     models = ('Conv2D', 'Conv2D1D')
