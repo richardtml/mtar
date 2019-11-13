@@ -11,7 +11,7 @@ rule sconv:
     conv2d_filters = (160, 192, 224, 256)
     conv2d_filters = (128, 160, 192, 224)
     configs = (dss, models, conv2d_filters, conv2d_filters)
-    for ds, model, conv2d, conv1d, do in product(*configs):
+    for ds, model, conv2d, conv1d in product(*configs):
       shell(
         "python train.py"
         f" --exp_name {rule}"
