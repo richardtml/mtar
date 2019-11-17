@@ -226,7 +226,7 @@ class Run(BaseExperiment):
     )
 
   def __call__(self):
-    self.run = f'{timestamp()}-{self.model.name}'
+    self.run = f'{timestamp()}-{self.model.name}-{self.train.strategy}'
     train(self)
 
 

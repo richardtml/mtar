@@ -1,6 +1,7 @@
 """Experiment for single frame model"""
 
 from itertools import product
+from shell import Shell
 
 rule msframe:
   run:
@@ -11,9 +12,9 @@ rule msframe:
     configs = (bns, strategies)
     for bn, strategy in product(*configs):
       bn_in, hmdb51_bn_out, ucf101_bn_out = bn
-      model = {
+      model={
         'name': 'SFrame',
-        'bn_in': bn_in
+        'bn_in': bn_in,
       }
       tasks={
         'hmdb51': {'split': 1, 'bn_out': hmdb51_bn_out},
@@ -30,10 +31,11 @@ rule msframe:
         'ebatch': 64,
         'alphas': [1, 1],
       }
-      shell(
+      cmd = (
         "python train.py"
         f" --exp {rule}"
         f" --model \"{model}\""
         f" --tasks \"{tasks}\""
         f" --train \"{train}\""
       )
+      Shell(cmd)
