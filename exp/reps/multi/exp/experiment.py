@@ -64,6 +64,15 @@ class ODict(MutableMapping):
 class BaseExperiment(ODict):
   """Base experiment class."""
 
+  @staticmethod
+  def load(run_dir, filename='run'):
+    filepath = os.path.join(run_dir, f'{filename}.yaml')
+    with open(filepath, 'r') as f:
+      config = yaml.load(f, Loader=yaml.FullLoader)
+      exp = BaseExperiment()
+      exp.update(config)
+      return exp
+
   def params(self):
     return filter_params(self)
 
@@ -77,8 +86,4 @@ class BaseExperiment(ODict):
     with open(filepath, 'w') as f:
       yaml.dump(params, f, sort_keys=False)
 
-  def load(self, run_dir, filename='run'):
-    filepath = os.path.join(run_dir, f'{filename}.yaml')
-    with open(filepath, 'r') as f:
-      config = yaml.load(f, Loader=yaml.FullLoader)
-      self.update(config)
+

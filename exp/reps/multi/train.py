@@ -124,7 +124,7 @@ def build_tzip(cfg):
   elif strategy == 'interleave':
     return tzip_interleave
   else:
-    raise ValueError(f'invalid cfg.train.strategy={strategy}')
+    raise ValueError(f'invalid param train_strategy={strategy}')
 
 @tf.function
 def train_step(xs, ys_true, model, loss_fn, opt, alphas):
