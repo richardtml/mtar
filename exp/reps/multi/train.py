@@ -16,11 +16,12 @@ import tensorflow as tf
 import torch
 from tqdm import trange
 
-import models
 from common import config
 from common.utils import timestamp
 from data import build_dataloader
 from exp.experiment import BaseExperiment
+import models
+import utils
 
 
 seed = config.get('SEED')
@@ -33,9 +34,9 @@ torch.manual_seed(seed)
 def build_trn_dls(datasets_dir, cfg):
   """Builds training datases."""
   dls = []
-  for task_name, task_prop in cfg.tasks.items():
-    dl = build_dataloader(datasets_dir, task_name,
-        task_prop['split'], 'train', cfg.train['tbatch'])
+  for ds in cfg._dss:
+    dl = build_dataloader(datasets_dir, ds.name,
+        ds.split, 'train', cfg.train_tbatch)
     dls.append(dl)
   return dls
 
@@ -47,12 +48,12 @@ def build_tasks_eval(datasets_dir, run_dir, cfg):
   subsets = []
   for alias, name in zip(('trn', 'tst'), ('train', 'test')):
     tasks = []
-    for task_name, task_prop in cfg.tasks.items():
-      dl = build_dataloader(datasets_dir, task_name,
-          task_prop['split'], name, cfg.train['ebatch'])
+    for ds in cfg._dss:
+      dl = build_dataloader(datasets_dir, ds.name,
+          ds.split, name, cfg.train_ebatch)
       loss = tf.keras.metrics.SparseCategoricalCrossentropy()
       acc = tf.keras.metrics.SparseCategoricalAccuracy()
-      tasks.append(Task(task_name, dl, loss, acc))
+      tasks.append(Task(ds.name, dl, loss, acc))
     writer = tf.summary.create_file_writer(join(run_dir, alias))
     subsets.append(Subset(tasks, writer))
   tasks_eval = TasksEval(*subsets)
@@ -61,8 +62,8 @@ def build_tasks_eval(datasets_dir, run_dir, cfg):
 def build_loss_opt(cfg):
   """Builds loss and optimization objects."""
   loss_fn = tf.keras.losses.SparseCategoricalCrossentropy()
-  opt = tf.keras.optimizers.SGD(learning_rate=cfg.train.lr,
-    momentum=cfg.train.momentum, nesterov=cfg.train.nesterov)
+  opt = tf.keras.optimizers.SGD(learning_rate=cfg.opt_lr,
+    momentum=cfg.opt_momentum, nesterov=cfg.opt_nesterov)
   return loss_fn, opt
 
 def tzip_refill(*dls):
@@ -113,7 +114,7 @@ def tzip_interleave(*dls, fillvalue=(None, None)):
 
 def build_tzip(cfg):
   """Builds training strategy zip."""
-  strategy = cfg.train.strategy
+  strategy = cfg.train_strategy
   if strategy == 'shortest':
     return zip
   elif strategy == 'longest':
@@ -171,7 +172,7 @@ def train(cfg):
   run_dir = join(config.get('RESULTS_DIR'), cfg.exp, cfg.run)
   cfg.save(run_dir)
 
-  ModelClass = models.get_model_class(cfg.model.name)
+  ModelClass = models.get_model_class(cfg.model)
   model = ModelClass(cfg)
 
   datasets_dir = config.get('DATASETS_DIR')
@@ -180,55 +181,52 @@ def train(cfg):
   loss_fn, opt = build_loss_opt(cfg)
   tasks_eval = build_tasks_eval(datasets_dir, run_dir, cfg)
 
-  epochs = cfg.train['epochs']
-  alphas = cfg.train['alphas']
   weights_dir = join(run_dir, 'weights')
-  for epoch in trange(epochs):
+  for epoch in trange(cfg.train_epochs):
     for batches in tzip(*trn_dls):
       xs, ys_true = zip(*batches)
-      train_step(xs, ys_true, model, loss_fn, opt, alphas)
+      train_step(xs, ys_true, model, loss_fn, opt, cfg.opt_alphas)
       eval_step(model, tasks_eval)
     eval_epoch(epoch, tasks_eval)
     model.save_weights(join(weights_dir, f'{epoch:03d}.ckpt'))
 
 
-class Run(BaseExperiment):
+class RunConfig(BaseExperiment):
 
   def __init__(self,
+      # experiment
+      run=None,
       exp='msframe',
-      model={
-        'name': 'SFrame',
-        'bn_in': 0,
-        'conv1d': 128,
-        'conv2d': 128,
-        'dropout': 0.5,
-        # 'rec_type': 'gru',
-        # 'rec_size': 128,
-      },
-      tasks={
-        'hmdb51': {'split': 1, 'bn_out': 0},
-        'ucf101': {'split': 1, 'bn_out': 0},
-      },
-      train={
-        'strategy': 'interleave',
-        'epochs': 10,
-        'lr': 1e-2,
-        'optimizer': 'sgd',
-        'momentum': 0.0,
-        'nesterov': False,
-        'tbatch': 128,
-        'ebatch': 64,
-        'alphas': [1, 1],
-      }
+      # model
+      model='SFrame',
+      model_bn_in=0,
+      model_bn_out=0,
+      # datasets
+      hmdb51=True,
+      hmdb51_split=1,
+      ucf101=True,
+      ucf101_split=1,
+      # training
+      train_strategy='shortest',
+      train_epochs=2,
+      train_tbatch=128,
+      train_ebatch=64,
+      # optimizer
+      opt='sgd',
+      opt_lr=1e-2,
+      opt_momentum=0.0,
+      opt_nesterov=False,
+      opt_alphas=[1, 1],
     ):
+    run = f'{timestamp()}-{model}-{train_strategy}'
     self.update(
       {k: v for k, v in reversed(list(locals().items())) if k != 'self'}
     )
 
   def __call__(self):
-    self.run = f'{timestamp()}-{self.model.name}-{self.train.strategy}'
+    self._dss = utils.build_datasets(self)
     train(self)
 
 
 if __name__ == '__main__':
-  fire.Fire(Run)
+  fire.Fire(RunConfig)

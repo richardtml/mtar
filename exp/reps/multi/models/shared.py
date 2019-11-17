@@ -21,30 +21,25 @@ class BaseAR(tf.keras.Model):
   def __init__(self, cfg, verbose):
     super(BaseAR, self).__init__()
     self.verbose = verbose
-    self.cfg = cfg
     self.bn_in = None
-    if cfg.model.bn_in:
+    if cfg.model_bn_in:
       name = f'bn_in'
       bn = layers.BatchNormalization(name=name)
       setattr(self, name, bn)
       self.bn_in = bn
-
     Task = namedtuple('Task', ('name', 'bn_out', 'fc'))
     self.tasks = []
-    for task_name, task_prop in cfg.tasks.items():
+    for ds in cfg._dss:
       bn_out = None
-      if task_prop.get('bn_out', None):
-        name = f'{task_name}_bn_out'
+      if cfg.model_bn_out:
+        name = f'{ds.name}_bn_out'
         bn_out = layers.BatchNormalization(name=name)
-        # self.bns_out.append(bn_out)
         setattr(self, name, bn_out)
-      name = f'{task_name}_fc'
-      size = FC_CLASSES[task_name]
+      name = f'{ds.name}_fc'
+      size = FC_CLASSES[ds.name]
       fc = layers.Dense(size, activation='softmax', name=name)
-      # self.fcs.append(layer)
       setattr(self, name, fc)
-      self.tasks.append(Task(task_name, bn_out, fc))
-      # self.tasks[task_name] = {'bn_out': bn_out, 'fc': fc}
+      self.tasks.append(Task(ds.name, bn_out, fc))
 
   def call_in_shared(self, x, training, verbose):
     # (N, 16, R)
