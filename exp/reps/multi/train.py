@@ -1,230 +1,234 @@
 """ train.py
 """
 
-import itertools as it
 import os
+import random
+from collections import namedtuple
 from functools import partial
 from itertools import zip_longest
 from os.path import join
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '4'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import fire
+import mlflow
 import numpy as np
 import tensorflow as tf
+import torch
 from tqdm import trange
 
 import models
-from data import build_dataloader
 from common import config
-from common.experiment import BaseExperiment
 from common.utils import timestamp
+from data import build_dataloader
+from exp.experiment import BaseExperiment
 
 
-tf.random.set_seed(config.get('SEED'))
+seed = config.get('SEED')
+random.seed(seed)
+np.random.seed(seed)
+tf.random.set_seed(seed)
+torch.manual_seed(seed)
 
 
-# def get_training_zip(strategy):
-#   return (for zip_longest(g))
+def build_trn_dls(datasets_dir, cfg):
+  """Builds training datases."""
+  dls = []
+  for task_name, task_prop in cfg.tasks.items():
+    dl = build_dataloader(datasets_dir, task_name,
+        task_prop['split'], 'train', cfg.train['tbatch'])
+    dls.append(dl)
+  return dls
+
+def build_tasks_eval(datasets_dir, run_dir, cfg):
+  """Builds tasks evaluation object."""
+  TasksEval = namedtuple('TasksEval', ('trn', 'tst'))
+  Subset = namedtuple('Subset', ('tasks', 'writer'))
+  Task = namedtuple('Task', ('name', 'dl', 'loss', 'acc'))
+  subsets = []
+  for alias, name in zip(('trn', 'tst'), ('train', 'test')):
+    tasks = []
+    for task_name, task_prop in cfg.tasks.items():
+      dl = build_dataloader(datasets_dir, task_name,
+          task_prop['split'], name, cfg.train['ebatch'])
+      loss = tf.keras.metrics.SparseCategoricalCrossentropy()
+      acc = tf.keras.metrics.SparseCategoricalAccuracy()
+      tasks.append(Task(task_name, dl, loss, acc))
+    writer = tf.summary.create_file_writer(join(run_dir, alias))
+    subsets.append(Subset(tasks, writer))
+  tasks_eval = TasksEval(*subsets)
+  return tasks_eval
+
+def build_loss_opt(cfg):
+  """Builds loss and optimization objects."""
+  loss_fn = tf.keras.losses.SparseCategoricalCrossentropy()
+  opt = tf.keras.optimizers.SGD(learning_rate=cfg.train.lr,
+    momentum=cfg.train.momentum, nesterov=cfg.train.nesterov)
+  return loss_fn, opt
+
+def tzip_refill(*dls):
+  sizes = [len(dl) for dl in dls]
+  i_max_dl = np.argmax(sizes)
+  its = [iter(dl) for dl in dls]
+  while True:
+    batches = []
+    for i in range(len(its)):
+      try:
+        batch = next(its[i])
+        batches.append(batch)
+      except StopIteration:
+        if i != i_max_dl:
+          its[i] = iter(dls[i])
+          batch = next(its[i])
+          batches.append(batch)
+        else:
+          return
+    yield batches
+
+def tzip_interleave(*dls, fillvalue=(None, None)):
+  sizes = np.array([len(dl) for dl in dls])
+  max_size = np.max(sizes)
+  steps = [max_size // size for size in sizes]
+  masks = [np.zeros(max_size) for _ in sizes]
+  for mask, size, step in zip(masks, sizes, steps):
+    indices = np.arange(0, size*step, step)
+    remaining = (max_size - 1) - indices[-1]
+    if remaining:
+      #print('indices', indices)
+      #print('remaining', remaining)
+      offset = np.arange(remaining)
+      #print('offset', offset)
+      if max_size % size:
+        indices[-len(offset):] = indices[-len(offset):] + offset[:len(indices)]
+    np.put(mask, indices, np.ones_like(indices))
+  its = [iter(dl) for dl in dls]
+  for batches_mask in zip(*masks):
+    batches = []
+    for batch_mask, it in zip(batches_mask, its):
+      if batch_mask:
+        batch = next(it)
+      else:
+        batch = fillvalue
+      batches.append(batch)
+    yield batches
+
+def build_tzip(cfg):
+  """Builds training strategy zip."""
+  strategy = cfg.train.strategy
+  if strategy == 'shortest':
+    return zip
+  elif strategy == 'longest':
+    return partial(zip_longest, fillvalue=(None, None))
+  elif strategy == 'refill':
+    return tzip_refill
+  elif strategy == 'interleave':
+    return tzip_interleave
+  else:
+    raise ValueError(f'invalid cfg.train.strategy={strategy}')
 
 @tf.function
-def train_step(x_h, y_true_h, x_u, y_true_u,
-    model, loss_fn, optimizer, alphas):
+def train_step(xs, ys_true, model, loss_fn, opt, alphas):
   with tf.GradientTape() as tape:
-    y_pred_h, y_pred_u = model((x_h, x_u), training=True)
-    loss = 0
-    if x_h is not None:
-      loss += loss_fn(y_true_h, y_pred_h) * alphas[0]
-    if x_u is not None:
-      loss += loss_fn(y_true_u, y_pred_u) * alphas[1]
+    ys_pred = model(xs, training=True)
+    losses = []
+    for y_true, y_pred, alpha in zip(ys_true, ys_pred, alphas):
+      if y_true is not None:
+        losses.append(loss_fn(y_true, y_pred) * alpha)
+    loss = tf.reduce_sum(losses)
   gradients = tape.gradient(loss, model.trainable_variables)
-  optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+  opt.apply_gradients(zip(gradients, model.trainable_variables))
 
-# def train_step(x_h, y_true_h, x_u, y_true_u, model, loss_fn, optimizer):
-#   print('--------------')
-#   with tf.GradientTape() as tape:
-#     y_pred_h, y_pred_u = model((x_h, x_u), training=True)
-#     if (x_h is not None) and (x_u is not None):
-#       loss = loss_fn(y_true_h, y_pred_h) + loss_fn(y_true_u, y_pred_u)
-#     else:
-#       if x_h is not None:
-#         print(f'x_h.shape {x_h.shape}')
-#         print(y_pred_u)
-#         loss = loss_fn(y_true_h, y_pred_h)
-#       if x_u is not None:
-#         print(f'x_u.shape {x_u.shape}')
-#         print(y_pred_h)
-#         loss = loss_fn(y_true_u, y_pred_u)
-#   gradients = tape.gradient(loss, model.trainable_variables)
-#   optimizer.apply_gradients(zip(gradients, model.trainable_variables))
-
-
-def eval_step_set(model,
-    dl_h, dl_u,
-    loss_epoch_h, loss_epoch_u,
-    acc_epoch_h, acc_epoch_u):
-  x_h, y_true_h = dl_h.first()
-  x_u, y_true_u = dl_u.first()
-  y_pred_h, y_pred_u = model((x_h, x_u))
-  loss_epoch_h(y_true_h, y_pred_h)
-  loss_epoch_u(y_true_u, y_pred_u)
-  acc_epoch_h(y_true_h, y_pred_h)
-  acc_epoch_u(y_true_u, y_pred_u)
+def eval_step_subset(model, subset):
+  batches = [task.dl.first() for task in subset.tasks]
+  xs, ys_true = zip(*batches)
+  ys_pred = model(xs)
+  for y_true, y_pred, task in zip(ys_true, ys_pred, subset.tasks):
+    task.loss(y_true, y_pred)
+    task.acc(y_true, y_pred)
 
 @tf.function
-def eval_step(model, trn, tst):
-  eval_step_set(model, *trn)
-  eval_step_set(model, *tst)
+def eval_step(model, tasks_eval):
+  eval_step_subset(model, tasks_eval.trn)
+  eval_step_subset(model, tasks_eval.tst)
 
-def eval_epoch_set(epoch,
-    loss_epoch_h, loss_epoch_u,
-    acc_epoch_h, acc_epoch_u,
-    writer):
-  loss_h = loss_epoch_h.result().numpy() * 100
-  loss_u = loss_epoch_u.result().numpy() * 100
-  acc_h = acc_epoch_h.result().numpy() * 100
-  acc_u = acc_epoch_u.result().numpy() * 100
-  loss_epoch_h.reset_states()
-  loss_epoch_u.reset_states()
-  acc_epoch_h.reset_states()
-  acc_epoch_u.reset_states()
-  with writer.as_default():
-    tf.summary.scalar('loss/hmdb51', loss_h, epoch)
-    tf.summary.scalar('loss/ucf101', loss_u, epoch)
-    tf.summary.scalar('acc/hmdb51', acc_h, epoch)
-    tf.summary.scalar('acc/ucf101', acc_u, epoch)
+def eval_epoch_subset(epoch, subset):
+  with subset.writer.as_default():
+    for task in subset.tasks:
+      loss = task.loss.result().numpy() * 100
+      acc = task.acc.result().numpy() * 100
+      task.loss.reset_states()
+      task.acc.reset_states()
+      tf.summary.scalar(f'loss/{task.name}', loss, epoch)
+      tf.summary.scalar(f'acc/{task.name}', acc, epoch)
+      # mlflow.log_metric(f'{subset_name}-loss-{task.name}', loss, epoch)
+      # mlflow.log_metric(f'{subset_name}-acc-{task.name}', acc, epoch)
 
-# def eval_epoch_set(epoch, writer, subset,
-#     loss_epoch_h, loss_epoch_u,
-#     acc_epoch_h, acc_epoch_u,
-#     ):
-#   loss_h = loss_epoch_h.result().numpy() * 100
-#   loss_u = loss_epoch_u.result().numpy() * 100
-#   acc_h = acc_epoch_h.result().numpy() * 100
-#   acc_u = acc_epoch_u.result().numpy() * 100
-#   loss_epoch_h.reset_states()
-#   loss_epoch_u.reset_states()
-#   acc_epoch_h.reset_states()
-#   acc_epoch_u.reset_states()
-#   with writer.as_default():
-#     tf.summary.scalar(f'loss/hmdb51/{subset}', loss_h, epoch)
-#     tf.summary.scalar(f'loss/ucf101/{subset}', loss_u, epoch)
-#     tf.summary.scalar(f'acc/hmdb51/{subset}', acc_h, epoch)
-#     tf.summary.scalar(f'acc/ucf101/{subset}', acc_u, epoch)
-
-def eval_epoch(epoch, trn, tst):
-  eval_epoch_set(epoch, *trn)
-  eval_epoch_set(epoch, *tst)
+def eval_epoch(epoch, tasks_eval):
+  eval_epoch_subset(epoch, tasks_eval.trn)
+  eval_epoch_subset(epoch, tasks_eval.tst)
 
 def train(cfg):
-  print(f"Trainig {cfg.model_id}")
-  cfg.save_params(cfg.experiment_dir)
+  print(f"Trainig {cfg.run}")
+  run_dir = join(config.get('RESULTS_DIR'), cfg.exp, cfg.run)
+  cfg.save(run_dir)
 
-  datasets_dir = config.get('DATASETS_DIR')
-  trn_dl_h = build_dataloader(datasets_dir, 'hmdb51',
-      'train', cfg.split, cfg.tbatch_size)
-  etrn_dl_h = build_dataloader(datasets_dir, 'hmdb51',
-      'train', cfg.split, cfg.ebatch_size)
-  etst_dl_h = build_dataloader(datasets_dir, 'hmdb51',
-      'test', cfg.split, cfg.ebatch_size)
-  trn_dl_u = build_dataloader(datasets_dir, 'ucf101',
-      'train', cfg.split, cfg.tbatch_size)
-  etrn_dl_u = build_dataloader(datasets_dir, 'ucf101',
-      'train', cfg.split, cfg.ebatch_size)
-  etst_dl_u = build_dataloader(datasets_dir, 'ucf101',
-      'test', cfg.split, cfg.ebatch_size)
-
-  ModelClass = models.get_model_class(cfg.model_class_name)
+  ModelClass = models.get_model_class(cfg.model.name)
   model = ModelClass(cfg)
 
-  loss_fn = tf.keras.losses.SparseCategoricalCrossentropy()
-  optimizer = tf.keras.optimizers.SGD(learning_rate=cfg.lr)
-  trn_loss_epoch_h = tf.keras.metrics.SparseCategoricalCrossentropy()
-  trn_acc_epoch_h = tf.keras.metrics.SparseCategoricalAccuracy()
-  tst_loss_epoch_h = tf.keras.metrics.SparseCategoricalCrossentropy()
-  tst_acc_epoch_h = tf.keras.metrics.SparseCategoricalAccuracy()
-  trn_loss_epoch_u = tf.keras.metrics.SparseCategoricalCrossentropy()
-  trn_acc_epoch_u = tf.keras.metrics.SparseCategoricalAccuracy()
-  tst_loss_epoch_u = tf.keras.metrics.SparseCategoricalCrossentropy()
-  tst_acc_epoch_u = tf.keras.metrics.SparseCategoricalAccuracy()
+  datasets_dir = config.get('DATASETS_DIR')
+  trn_dls = build_trn_dls(datasets_dir, cfg)
+  tzip = build_tzip(cfg)
+  loss_fn, opt = build_loss_opt(cfg)
+  tasks_eval = build_tasks_eval(datasets_dir, run_dir, cfg)
 
-  trn_writer = tf.summary.create_file_writer(join(cfg.experiment_dir, 'trn'))
-  tst_writer = tf.summary.create_file_writer(join(cfg.experiment_dir, 'tst'))
-  # writer = tf.summary.create_file_writer(cfg.experiment_dir)
-
-  trn_eval_step = (
-    etrn_dl_h, etrn_dl_u,
-    trn_loss_epoch_h, trn_loss_epoch_u,
-    trn_acc_epoch_h, trn_acc_epoch_u
-  )
-  tst_eval_step = (
-    etst_dl_h, etst_dl_u,
-    tst_loss_epoch_h, tst_loss_epoch_u,
-    tst_acc_epoch_h, tst_acc_epoch_u
-  )
-  trn_eval_epoch = (
-    trn_loss_epoch_h, trn_loss_epoch_u,
-    trn_acc_epoch_h, trn_acc_epoch_u,
-    trn_writer
-  )
-  tst_eval_epoch = (
-    tst_loss_epoch_h, tst_loss_epoch_u,
-    tst_acc_epoch_h, tst_acc_epoch_u,
-    tst_writer
-  )
-  # trn_eval_epoch = (
-  #   writer, 'trn',
-  #   trn_loss_epoch_h, trn_loss_epoch_u,
-  #   trn_acc_epoch_h, trn_acc_epoch_u
-  # )
-  # tst_eval_epoch = (
-  #   writer, 'tst',
-  #   tst_loss_epoch_h, tst_loss_epoch_u,
-  #   tst_acc_epoch_h, tst_acc_epoch_u
-  # )
-
-  lzip = partial(zip_longest, fillvalue=(None, None))
-  tzip = zip if cfg.train_strategy == 'shortest' else lzip
-
-  weights_dir = join(cfg.experiment_dir, 'weights')
-  for epoch in trange(cfg.epochs):
-    # for (x_h, y_true_h), (x_u, y_true_u) in zip_longest(trn_dl_h, trn_dl_u):
-    for (x_h, y_true_h), (x_u, y_true_u) in tzip(trn_dl_h, trn_dl_u):
-      train_step(x_h, y_true_h, x_u, y_true_u,
-          model, loss_fn, optimizer, cfg.alphas)
-      eval_step(model, trn_eval_step, tst_eval_step)
-    eval_epoch(epoch, trn_eval_epoch, tst_eval_epoch)
+  epochs = cfg.train['epochs']
+  alphas = cfg.train['alphas']
+  weights_dir = join(run_dir, 'weights')
+  for epoch in trange(epochs):
+    for batches in tzip(*trn_dls):
+      xs, ys_true = zip(*batches)
+      train_step(xs, ys_true, model, loss_fn, opt, alphas)
+      eval_step(model, tasks_eval)
+    eval_epoch(epoch, tasks_eval)
     model.save_weights(join(weights_dir, f'{epoch:03d}.ckpt'))
 
 
-class Experiment(BaseExperiment):
+class Run(BaseExperiment):
 
   def __init__(self,
-      split=1,
-      reps_size=512,
-      tbatch_size=64,
-      ebatch_size=64,
-      lr=1e-3,
-      alphas=(1, 1),
-      epochs=5,
-      train_strategy='shortest', # shortest, longest
-      conv2d_filters=128,
-      dropout=0.5,
-      batchnorm=True,
-      rec_type='gru', # gru or lstm
-      rec_size=128,
-      exp_name='multi',
-      ):
-    self.init_params(locals())
+      exp='msframe',
+      model={
+        'name': 'SFrame',
+        'bn_in': 0,
+        'conv1d': 128,
+        'conv2d': 128,
+        'dropout': 0.5,
+        # 'rec_type': 'gru',
+        # 'rec_size': 128,
+      },
+      tasks={
+        'hmdb51': {'split': 1, 'bn_out': 0},
+        'ucf101': {'split': 1, 'bn_out': 0},
+      },
+      train={
+        'strategy': 'interleave',
+        'epochs': 10,
+        'lr': 1e-2,
+        'optimizer': 'sgd',
+        'momentum': 0.0,
+        'nesterov': False,
+        'tbatch': 128,
+        'ebatch': 64,
+        'alphas': [1, 1],
+      }
+    ):
+    self.update(
+      {k: v for k, v in reversed(list(locals().items())) if k != 'self'}
+    )
 
-  def __call__(self,
-      model # Conv2D, Conv2D1D, FullConv Rec
-      ):
-    self.model_class_name = model
-    self.model_id = f'{timestamp()}-{self.split}-{model}'
-    self.experiment_dir = join(config.get('RESULTS_DIR'),
-        self.exp_name, self.model_id)
+  def __call__(self):
+    self.run = f'{timestamp()}-{self.model.name}'
     train(self)
 
 
 if __name__ == '__main__':
-  fire.Fire(Experiment)
+  fire.Fire(Run)

@@ -6,30 +6,26 @@ Config utils.
 import os
 from dotenv import load_dotenv
 
-
 VARS = {}
+DEFAULT_SEED = 0
 
-
-def load_var(var):
-  if var not in os.environ:
-    load_dotenv()
-  if var not in os.environ:
-    raise ValueError(
-        f'{var} environment variable not defined, see README.md'
-    )
-
+def load_var(key, val=None, convert=None):
+  if key in os.environ:
+    val = os.getenv(key)
+    VARS[key] = convert(val) if convert else val
+  else:
+    if val is not None:
+      VARS[key] = convert(val) if convert else val
+    else:
+      raise ValueError(
+        f'{key} environment variable not defined, see README.md')
 
 def load():
+  load_dotenv()
   load_var('DATASETS_DIR')
-  VARS['DATASETS_DIR'] = os.getenv('DATASETS_DIR')
   load_var('RESULTS_DIR')
-  VARS['RESULTS_DIR'] = os.getenv('RESULTS_DIR')
-  load_var('SEED')
-  VARS['SEED'] = int(os.getenv('SEED'))
-
+  load_var('SEED', val=DEFAULT_SEED, convert=int)
 
 def get(var):
+  if len(VARS) == 0: load()
   return VARS[var]
-
-
-load()
