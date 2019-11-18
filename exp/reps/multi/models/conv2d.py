@@ -6,18 +6,18 @@ Simple Conv2D model for Action Recognition.
 import tensorflow as tf
 from tensorflow.keras import layers
 
-from exp.reps.multi.models.shared import HMDB51UCF101
+from exp.reps.multi.models.shared import BaseAR
 
 
-class Conv2D(HMDB51UCF101):
+class Conv2D(BaseAR):
 
   def __init__(self, cfg, verbose=False):
-    super(Conv2D, self).__init__(cfg.batchnorm, verbose)
+    super(Conv2D, self).__init__(cfg, verbose)
     self.pad = layers.ZeroPadding2D(padding=(1, 0), name='zpad2d')
     self.conv2d = layers.Conv2D(
-        filters=cfg.conv2d_filters, kernel_size=(3, cfg.reps_size),
+        filters=cfg.model_conv2d_filters, kernel_size=(3, 512),
         padding='valid', activation='relu', name='conv2d')
-    self.dropout = layers.SpatialDropout1D(cfg.dropout, name='do1d')
+    self.dropout = layers.SpatialDropout1D(cfg.model_dropout, name='do1d')
     self.gap = layers.GlobalAveragePooling1D(name='gap')
 
   def call_shared(self, x, training, verbose):

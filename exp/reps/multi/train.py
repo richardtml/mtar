@@ -203,6 +203,9 @@ class RunConfig(BaseExperiment):
       model_bn_out=0,
       model_rec_type='gru',
       model_rec_size=128,
+      model_conv2d_filters=160,
+      model_conv1d_filters=160,
+      model_dropout=0.5,
       # datasets
       hmdb51=True,
       hmdb51_split=1,

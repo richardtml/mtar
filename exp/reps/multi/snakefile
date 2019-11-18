@@ -1,5 +1,6 @@
 # Multi-task experiments
 
-include: "exp/mrec.smk"
+include: "exp/mconv2d.smk"
 include: "exp/mmean.smk"
+include: "exp/mrec.smk"
 include: "exp/msframe.smk"
