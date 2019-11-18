@@ -33,7 +33,7 @@ class MeanFC(BaseAR):
 
 class FCMean(tf.keras.Model):
 
-  def __init__(self, cfg, verbose):
+  def __init__(self, cfg, verbose=False):
     super(FCMean, self).__init__()
     self.verbose = verbose
     self.bn_in = None
