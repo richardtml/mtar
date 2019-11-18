@@ -7,23 +7,21 @@ Simple Conv2D + Conv1D model for Action Recognition.
 import tensorflow as tf
 from tensorflow.keras import layers
 
-from exp.reps.multi.models.shared import HMDB51UCF101
+from exp.reps.multi.models.shared import BaseAR
 
 
-class Conv2D1D(HMDB51UCF101):
+class Conv2D1D(BaseAR):
 
   def __init__(self, cfg, verbose=False):
-    super(Conv2D1D, self).__init__(cfg.batchnorm, verbose)
-    div = 2
+    super(Conv2D1D, self).__init__(cfg, verbose)
     self.pad = layers.ZeroPadding2D(padding=(1, 0), name='zpad2d')
     self.conv2d = layers.Conv2D(
-        filters=cfg.conv2d_filters, kernel_size=(3, cfg.reps_size),
+        filters=cfg.model_conv2d_filters, kernel_size=(3, 512),
         padding='valid', activation='relu', name='conv2d')
-    self.dropout1 = layers.SpatialDropout1D(cfg.dropout, name='do1d1')
+    self.dropout = layers.SpatialDropout1D(cfg.model_dropout, name='do1d')
     self.conv1d = layers.Conv1D(
-        filters=cfg.conv2d_filters//div, kernel_size=3,
+        filters=cfg.model_conv1d_filters, kernel_size=3,
         padding='same', activation='relu', name='conv1d')
-    self.dropout2 = layers.SpatialDropout1D(cfg.dropout, name='do1d2')
     self.pool = layers.MaxPool1D(pool_size=2, name='mpool1d')
     self.gap = layers.GlobalAveragePooling1D(name='gap1d')
 
