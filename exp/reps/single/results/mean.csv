@@ -1,0 +1,14 @@
+run,ds,split,acc,epoch,conv1d_filters,conv2d_filters,dropout,ebatch_size,epochs,exp_name,ifc,lr,model,rec_size,rec_type,reps_size,tbatch_size
+191106T113218-hmdb51-FCMean,hmdb51,1,30.8047503232956,485,128,128,0.5,64,500,smean,False,0.005,FCMean,128,gru,512,128
+191106T113837-hmdb51-FCMean,hmdb51,1,27.5065958499908,497,128,128,0.5,64,500,smean,True,0.005,FCMean,128,gru,512,128
+191106T114458-hmdb51-MeanFC,hmdb51,1,30.0791561603546,355,128,128,0.5,64,500,smean,False,0.005,MeanFC,128,gru,512,128
+191106T115117-hmdb51-MeanFC,hmdb51,1,30.0791561603546,355,128,128,0.5,64,500,smean,True,0.005,MeanFC,128,gru,512,128
+191106T115738-ucf101-FCMean,ucf101,1,65.2127921581268,492,128,128,0.5,64,500,smean,False,0.005,FCMean,128,gru,512,128
+191106T121344-ucf101-FCMean,ucf101,1,63.3095443248749,482,128,128,0.5,64,500,smean,True,0.005,FCMean,128,gru,512,128
+191106T122947-ucf101-MeanFC,ucf101,1,63.7060523033142,469,128,128,0.5,64,500,smean,False,0.005,MeanFC,128,gru,512,128
+191106T124548-ucf101-MeanFC,ucf101,1,63.7060523033142,469,128,128,0.5,64,500,smean,True,0.005,MeanFC,128,gru,512,128
+
+# Observations:
+# Internal FC (before last classification layer) does not help
+# Classify first allows richer info to arrive to the FC
+# Considerably good results for a temporal mean aggregation
