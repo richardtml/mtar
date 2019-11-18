@@ -6,4 +6,7 @@
 # from exp.reps.multi.models.fullconv import FullConv
 # from exp.reps.multi.models.mean import MeanFC
 # from exp.reps.multi.models.rec import Rec
+
+from exp.reps.multi.models.mean import FCMean, MeanFC
 from exp.reps.multi.models.sframe import SFrame
+
