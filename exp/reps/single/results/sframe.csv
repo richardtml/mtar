@@ -4,6 +4,6 @@ run,ds,split,acc,epoch,conv1d_filters,conv2d_filters,dropout,ebatch_size,epochs,
 191106T152846-ucf101-SFrame,ucf101,1,52.1808087825775,498,128,128,0.5,64,500,sframe,False,0.005,SFrame,128,gru,512,128
 191106T154436-ucf101-SFrame,ucf101,1,47.8984922170639,458,128,128,0.5,64,500,sframe,True,0.005,SFrame,128,gru,512,128
 
-# Observaciones
+# Observations:
 # Internal FC (before last classification layer) does not help
 # Considerably good results for a single frame input
