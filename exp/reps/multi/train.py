@@ -196,11 +196,13 @@ class RunConfig(BaseExperiment):
   def __init__(self,
       # experiment
       run=None,
-      exp='msframe',
+      exp='multi',
       # model
       model='SFrame',
       model_bn_in=0,
       model_bn_out=0,
+      model_rec_type='gru',
+      model_rec_size=128,
       # datasets
       hmdb51=True,
       hmdb51_split=1,

@@ -1,4 +1,5 @@
 # Multi-task experiments
 
+include: "exp/mrec.smk"
 include: "exp/mmean.smk"
 include: "exp/msframe.smk"
