@@ -1,0 +1,9 @@
+run,ds,split,acc,epoch,conv1d_filters,conv2d_filters,dropout,ebatch_size,epochs,exp_name,ifc,lr,model,rec_size,rec_type,reps_size,tbatch_size
+191106T151622-hmdb51-SFrame,hmdb51,1,23.5488131642342,488,128,128,0.5,64,500,sframe,False,0.005,SFrame,128,gru,512,128
+191106T152232-hmdb51-SFrame,hmdb51,1,18.2058051228523,353,128,128,0.5,64,500,sframe,True,0.005,SFrame,128,gru,512,128
+191106T152846-ucf101-SFrame,ucf101,1,52.1808087825775,498,128,128,0.5,64,500,sframe,False,0.005,SFrame,128,gru,512,128
+191106T154436-ucf101-SFrame,ucf101,1,47.8984922170639,458,128,128,0.5,64,500,sframe,True,0.005,SFrame,128,gru,512,128
+
+# Observaciones
+# Internal FC (before last classification layer) does not help
+# Considerably good results for a single frame input
