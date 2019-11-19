@@ -10,5 +10,6 @@ run,ds,split,acc,epoch,conv1d_filters,conv2d_filters,dropout,ebatch_size,epochs,
 
 # Observations:
 # Internal FC (before last classification layer) does not help
+#   test only for FCMean
 # Classify first allows richer info to arrive to the FC
 # Considerably good results for a temporal mean aggregation
