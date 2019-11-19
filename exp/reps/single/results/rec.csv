@@ -14,5 +14,5 @@ run,ds,split,acc,epoch,conv1d_filters,conv2d_filters,dropout,ebatch_size,epochs,
 
 # Observations
 # Lower results than SMean :O.
-# Increase number of layers (1, 2, 4) does not help.
-# More fine-tune arch (size, dropout) might help.
+# Increase number of layers (1 2 4) does not help.
+# More fine-tune arch (size dropout) might help.
