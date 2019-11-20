@@ -1,0 +1,29 @@
+run,hmdb51_acc,hmdb51_epoch,ucf101_acc,ucf101_epoch,exp,model,model_bn_in,model_bn_out,model_rec_type,model_rec_size,hmdb51,hmdb51_split,ucf101,ucf101_split,train_strategy,train_epochs,train_tbatch,train_ebatch,opt,opt_lr,opt_momentum,opt_nesterov,opt_alphas
+191117T222805-Rec-shortest,27.3746699094772,237,56.9125056266785,491,mrec,Rec,0,0,gru,128,True,1,True,1,shortest,500,128,64,sgd,0.01,0,False,"[1, 1]"
+191117T225106-Rec-longest,27.0448535680771,175,57.9169988632202,231,mrec,Rec,0,0,gru,128,True,1,True,1,longest,500,128,64,sgd,0.01,0,False,"[1, 1]"
+191117T233307-Rec-refill,27.6385217905044,95,57.7848255634308,400,mrec,Rec,0,0,gru,128,True,1,True,1,refill,500,128,64,sgd,0.01,0,False,"[1, 1]"
+191118T004521-Rec-interleave,27.0448535680771,172,57.9169988632202,229,mrec,Rec,0,0,gru,128,True,1,True,1,interleave,500,128,64,sgd,0.01,0,False,"[1, 1]"
+191118T014827-Rec-shortest,27.11081802845,208,57.4147522449493,455,mrec,Rec,0,0,gru,160,True,1,True,1,shortest,500,128,64,sgd,0.01,0,False,"[1, 1]"
+191118T021958-Rec-longest,27.7044862508774,474,58.1813395023346,151,mrec,Rec,0,0,gru,160,True,1,True,1,longest,500,128,64,sgd,0.01,0,False,"[1, 1]"
+191118T030842-Rec-refill,26.9788920879364,152,57.9698622226715,427,mrec,Rec,0,0,gru,160,True,1,True,1,refill,500,128,64,sgd,0.01,0,False,"[1, 1]"
+191118T042951-Rec-interleave,27.7704477310181,473,58.1813395023346,225,mrec,Rec,0,0,gru,160,True,1,True,1,interleave,500,128,64,sgd,0.01,0,False,"[1, 1]"
+191118T052225-Rec-shortest,28.8918197154999,239,57.5733542442322,438,mrec,Rec,1,0,gru,128,True,1,True,1,shortest,500,128,64,sgd,0.01,0,False,"[1, 1]"
+191118T054713-Rec-longest,28.1662255525589,338,58.6042821407318,263,mrec,Rec,1,0,gru,128,True,1,True,1,longest,500,128,64,sgd,0.01,0,False,"[1, 1]"
+191118T063322-Rec-refill,28.9577841758728,91,58.7364554405212,464,mrec,Rec,1,0,gru,128,True,1,True,1,refill,500,128,64,sgd,0.01,0,False,"[1, 1]"
+191118T073707-Rec-interleave,28.1662255525589,340,58.6042821407318,260,mrec,Rec,1,0,gru,128,True,1,True,1,interleave,500,128,64,sgd,0.01,0,False,"[1, 1]"
+191118T082318-Rec-shortest,28.8918197154999,386,58.1284701824188,442,mrec,Rec,1,0,gru,160,True,1,True,1,shortest,500,128,64,sgd,0.01,0,False,"[1, 1]"
+191118T085115-Rec-longest,28.1662255525589,238,58.8157534599304,138,mrec,Rec,1,0,gru,160,True,1,True,1,longest,500,128,64,sgd,0.01,0,False,"[1, 1]"
+191118T094410-Rec-refill,28.562006354332,119,58.8157534599304,490,mrec,Rec,1,0,gru,160,True,1,True,1,refill,500,128,64,sgd,0.01,0,False,"[1, 1]"
+191118T105616-Rec-interleave,28.2321900129318,228,58.8157534599304,153,mrec,Rec,1,0,gru,160,True,1,True,1,interleave,500,128,64,sgd,0.01,0,False,"[1, 1]"
+191118T114925-Rec-shortest,26.1213719844818,172,55.2735924720764,468,mrec,Rec,1,1,gru,128,True,1,True,1,shortest,500,128,64,sgd,0.01,0,False,"[1, 1]"
+191118T121926-Rec-longest,26.3192623853684,146,55.7494044303894,460,mrec,Rec,1,1,gru,128,True,1,True,1,longest,500,128,64,sgd,0.01,0,False,"[1, 1]"
+191118T132917-Rec-refill,26.1213719844818,60,55.7494044303894,289,mrec,Rec,1,1,gru,128,True,1,True,1,refill,500,128,64,sgd,0.01,0,False,"[1, 1]"
+191118T144514-Rec-interleave,26.3192623853684,152,55.7758390903473,467,mrec,Rec,1,1,gru,128,True,1,True,1,interleave,500,128,64,sgd,0.01,0,False,"[1, 1]"
+191118T155120-Rec-shortest,25.3298163414001,452,55.4586291313171,489,mrec,Rec,1,1,gru,160,True,1,True,1,shortest,500,128,64,sgd,0.01,0,False,"[1, 1]"
+191118T163551-Rec-longest,25.5936682224274,403,56.436687707901,499,mrec,Rec,1,1,gru,160,True,1,True,1,longest,500,128,64,sgd,0.01,0,False,"[1, 1]"
+191118T175331-Rec-refill,25.3298163414001,221,56.1459183692932,492,mrec,Rec,1,1,gru,160,True,1,True,1,refill,500,128,64,sgd,0.01,0,False,"[1, 1]"
+,,,,,,,,,,,,,,,,,,,,,,,
+# Observations:,,,,,,,,,,,,,,,,,,,,,,,
+# RNNs suck for MTL (and in general) U.u.,,,,,,,,,,,,,,,,,,,,,,,
+# No actual improvements over single-task.,,,,,,,,,,,,,,,,,,,,,,,
+# Batchnorm the outputs seems counterproductive.,,,,,,,,,,,,,,,,,,,,,,,
