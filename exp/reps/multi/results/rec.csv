@@ -22,6 +22,7 @@ run,hmdb51_acc,hmdb51_epoch,ucf101_acc,ucf101_epoch,exp,model,model_bn_in,model_
 191118T155120-Rec-shortest,25.3298163414001,452,55.4586291313171,489,mrec,Rec,1,1,gru,160,True,1,True,1,shortest,500,128,64,sgd,0.01,0,False,"[1, 1]"
 191118T163551-Rec-longest,25.5936682224274,403,56.436687707901,499,mrec,Rec,1,1,gru,160,True,1,True,1,longest,500,128,64,sgd,0.01,0,False,"[1, 1]"
 191118T175331-Rec-refill,25.3298163414001,221,56.1459183692932,492,mrec,Rec,1,1,gru,160,True,1,True,1,refill,500,128,64,sgd,0.01,0,False,"[1, 1]"
+191118T193042-Rec-interleave,25.659629702568,397,56.436687707901,499,mrec,Rec,1,1,gru,160,True,1,True,1,interleave,500,128,64,sgd,0.01,0,False,"[1, 1]"
 ,,,,,,,,,,,,,,,,,,,,,,,
 # Observations:,,,,,,,,,,,,,,,,,,,,,,,
 # RNNs suck for MTL (and in general) U.u.,,,,,,,,,,,,,,,,,,,,,,,
