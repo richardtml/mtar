@@ -30,7 +30,7 @@ rule mconv2d_tune:
   run:
     lr = config.get('lr', 5e-3)
     epochs = config.get('epochs', 500)
-    conv2ds = (192, 224, 256)
+    conv2ds = (224, 256)
     strategies = ('shortest', 'longest', 'refill', 'interleave')
     configs = (conv2ds, strategies)
     for conv2d, strategy in product(*configs):
