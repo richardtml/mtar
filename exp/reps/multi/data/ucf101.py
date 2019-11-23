@@ -19,14 +19,14 @@ class UCF101Dataset(Dataset):
   """UCF101 dataset."""
 
   def __init__(self, ds_dir, split, subset, min_seq=16, max_seq=16,
-      sampling='equal', cache=False, verbose=False, print_dropped=False):
+      sampling='fixed', cache=False, verbose=False, print_dropped=False):
     if split not in (1, 2, 3):
       raise ValueError(f'invalid split={split}')
     if subset not in ('train', 'test'):
       raise ValueError(f'invalid subset={subset}')
     if max_seq < min_seq:
       raise ValueError(f"invalid min_seq={min_seq}<{max_seq}=max_seq")
-    if sampling not in ('equal', 'random'):
+    if sampling not in ('fixed', 'random'):
       raise ValueError(f'invalid sampling={sampling}')
     self.max_seq = max_seq
     self.sampling = sampling

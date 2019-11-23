@@ -15,7 +15,7 @@ from exp.reps.multi.data.ucf101 import UCF101Dataset
 
 def build_dataloader(datasets_dir, ds, split, subset, batch_size,
     min_seq=16, max_seq=16, shuffle=True, num_workers=4,
-    sampling='equal', cache=False, verbose=False, print_dropped=False):
+    sampling='fixed', cache=False, verbose=False, print_dropped=False):
   """Builds a Dataloader."""
   if ds == 'hmdb51':
     Dataset = HMDB51Dataset

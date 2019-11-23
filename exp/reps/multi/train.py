@@ -206,6 +206,9 @@ class RunConfig(BaseExperiment):
       model_bn_out=0,
       model_rec_type='gru',
       model_rec_size=128,
+      model_rec_layers=1,
+      model_rec_bi=0,
+      model_rec_bi_merge='concat',
       model_conv2d_filters=160,
       model_conv1d_filters=160,
       model_dropout=0.5,
@@ -227,7 +230,7 @@ class RunConfig(BaseExperiment):
       opt_nesterov=False,
       opt_alphas=[1, 1],
       # cache
-      dss_sampling='equal',
+      dss_sampling='fixed',
       dss_cache=False,
     ):
     run = f'{timestamp()}-{model}-{train_strategy}'

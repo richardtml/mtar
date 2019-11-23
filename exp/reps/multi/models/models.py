@@ -1,6 +1,7 @@
 """ models.py
 """
 
+from exp.reps.multi.models.conv1drec import Conv1DRec
 from exp.reps.multi.models.conv2d import Conv2D
 from exp.reps.multi.models.conv2d1d import Conv2D1D
 # from exp.reps.multi.models.fullconv import FullConv

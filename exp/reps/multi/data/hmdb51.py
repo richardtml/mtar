@@ -26,7 +26,7 @@ class HMDB51Dataset(Dataset):
       raise ValueError(f'invalid subset={subset}')
     if max_seq < min_seq:
       raise ValueError(f"invalid min_seq={min_seq}<{max_seq}=max_seq")
-    if sampling not in ('equal', 'random'):
+    if sampling not in ('fixed', 'random'):
       raise ValueError(f'invalid sampling={sampling}')
     self.max_seq = max_seq
     self.sampling = sampling
