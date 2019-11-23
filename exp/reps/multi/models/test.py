@@ -30,6 +30,7 @@ class RunConfig(BaseExperiment):
       model_conv2d_filters=160,
       model_conv1d_filters=160,
       model_dropout=0.5,
+      model_ifc=0,
       # datasets
       hmdb51=True,
       hmdb51_split=1,

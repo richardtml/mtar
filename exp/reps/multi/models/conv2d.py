@@ -16,7 +16,9 @@ class Conv2D(BaseAR):
     self.pad = layers.ZeroPadding2D(padding=(1, 0), name='zpad2d')
     self.conv2d = layers.Conv2D(
         filters=cfg.model_conv2d_filters, kernel_size=(3, 512),
-        padding='valid', activation='relu', name='conv2d')
+        padding='valid', activation='relu',
+        use_bias=(not cfg.model_bn_in),
+        name='conv2d')
     self.dropout = layers.SpatialDropout1D(cfg.model_dropout, name='do1d')
     self.gap = layers.GlobalAveragePooling1D(name='gap')
 

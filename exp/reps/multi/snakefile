@@ -5,3 +5,15 @@ include: "exp/mconv2d1d.smk"
 include: "exp/mmean.smk"
 include: "exp/mrec.smk"
 include: "exp/msframe.smk"
+
+
+def filter_runs_dirs(runs_dirs):
+  evaluable_runs_dirs = []
+  for run_dir in sorted(runs_dirs):
+    if isdir(run_dir):
+      cfg = BaseExperiment.load(run_dir)
+      trained_epochs = len(glob.glob(join(run_dir, 'weights', '*.index')))
+      if trained_epochs == cfg.train_epochs:
+        if not exists(join(run_dir, 'results.csv')):
+          evaluable_runs_dirs.append(run_dir)
+  return evaluable_runs_dirs

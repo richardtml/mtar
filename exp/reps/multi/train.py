@@ -35,8 +35,10 @@ def build_trn_dls(datasets_dir, cfg):
   """Builds training datases."""
   dls = []
   for ds in cfg._dss:
-    dl = build_dataloader(datasets_dir, ds.name,
-        ds.split, 'train', cfg.train_tbatch)
+    dl = build_dataloader(datasets_dir=datasets_dir,
+        ds=ds.name, split=ds.split, subset='train',
+        batch_size=cfg.train_tbatch, sampling=cfg.dss_sampling,
+        cache=cfg.dss_cache)
     dls.append(dl)
   return dls
 
@@ -49,8 +51,9 @@ def build_tasks_eval(datasets_dir, run_dir, cfg):
   for alias, name in zip(('trn', 'tst'), ('train', 'test')):
     tasks = []
     for ds in cfg._dss:
-      dl = build_dataloader(datasets_dir, ds.name,
-          ds.split, name, cfg.train_ebatch)
+      dl = build_dataloader(datasets_dir=datasets_dir,
+          ds=ds.name, split=ds.split, subset=name,
+          batch_size=cfg.train_ebatch, cache=cfg.dss_cache)
       loss = tf.keras.metrics.SparseCategoricalCrossentropy()
       acc = tf.keras.metrics.SparseCategoricalAccuracy()
       tasks.append(Task(ds.name, dl, loss, acc))
@@ -206,6 +209,7 @@ class RunConfig(BaseExperiment):
       model_conv2d_filters=160,
       model_conv1d_filters=160,
       model_dropout=0.5,
+      model_ifc=0,
       # datasets
       hmdb51=True,
       hmdb51_split=1,
@@ -222,6 +226,9 @@ class RunConfig(BaseExperiment):
       opt_momentum=0.0,
       opt_nesterov=False,
       opt_alphas=[1, 1],
+      # cache
+      dss_sampling='equal',
+      dss_cache=False,
     ):
     run = f'{timestamp()}-{model}-{train_strategy}'
     self.update(

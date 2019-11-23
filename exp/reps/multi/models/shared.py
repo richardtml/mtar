@@ -25,9 +25,8 @@ class BaseAR(tf.keras.Model):
     if cfg.model_bn_in:
       name = f'bn_in'
       bn = layers.BatchNormalization(name=name)
-      setattr(self, name, bn)
       self.bn_in = bn
-    Task = namedtuple('Task', ('name', 'bn_out', 'fc'))
+    Task = namedtuple('Task', ('name', 'bn_out', 'ifc', 'fc'))
     self.tasks = []
     for ds in cfg._dss:
       bn_out = None
@@ -35,11 +34,18 @@ class BaseAR(tf.keras.Model):
         name = f'{ds.name}_bn_out'
         bn_out = layers.BatchNormalization(name=name)
         setattr(self, name, bn_out)
-      name = f'{ds.name}_fc'
+      ifc = None
       size = FC_CLASSES[ds.name]
+      if cfg.model_ifc:
+        name = f'{ds.name}_ifc'
+        ifc = layers.Dense(size, activation='relu',
+                use_bias=(not cfg.model_bn_out),
+                name=name)
+        setattr(self, name, ifc)
+      name = f'{ds.name}_fc'
       fc = layers.Dense(size, activation='softmax', name=name)
       setattr(self, name, fc)
-      self.tasks.append(Task(ds.name, bn_out, fc))
+      self.tasks.append(Task(ds.name, bn_out, ifc, fc))
 
   def call_in_shared(self, x, training, verbose):
     # (N, 16, R)
@@ -73,6 +79,10 @@ class BaseAR(tf.keras.Model):
           # (N, F) => (N, F)
           x = task.bn_out(x, training)
           if verbose: print(f'{task.name}_bn_out {x.shape}')
+        if task.ifc is not None:
+          # (N, F) => (N, C)
+          x = task.ifc(x)
+          if verbose: print(f'{task.name}_ifc {x.shape}')
         # (N, C) => (N, C)
         x = task.fc(x)
         if verbose: print(f'{task.name}_fc {x.shape}')
