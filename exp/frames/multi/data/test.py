@@ -8,8 +8,6 @@ import os
 
 import fire
 import matplotlib.pyplot as plt
-import numpy as np
-import torch
 
 from builder import build_dataloader
 from common import config
