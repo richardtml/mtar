@@ -53,7 +53,7 @@ def build_tasks_eval(datasets_dir, run_dir, cfg):
     for ds in cfg._dss:
       dl = build_dataloader(datasets_dir=datasets_dir,
           ds=ds.name, split=ds.split, subset=name,
-          batch_size=cfg.train_ebatch, cache=cfg.dss_cache)
+          batch_size=cfg.train_ebatch, cache=True)
       loss = tf.keras.metrics.SparseCategoricalCrossentropy()
       acc = tf.keras.metrics.SparseCategoricalAccuracy()
       tasks.append(Task(ds.name, dl, loss, acc))
