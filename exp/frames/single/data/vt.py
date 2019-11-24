@@ -5,6 +5,17 @@ Video Transform.
 
 from vidaug import augmentors as va
 
+
+class VideoShapeTransform:
+  """Video transform for data augmentation."""
+
+  def __init__(self, shape=(224, 224)):
+    self.shape = shape
+
+  def __call__(self, frames):
+    frames = [frame.resize(self.shape) for frame in frames]
+    return frames
+
 class VideoTransform:
   """Video transform for data augmentation."""
 

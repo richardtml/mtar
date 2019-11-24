@@ -17,7 +17,7 @@ from common import config
 def plot_clip(clip):
   height = math.ceil(math.sqrt(len(clip)))
   width = height if height * height == len(clip) else height + 1
-  fig = plt.figure(figsize=(height*2, width*2))
+  fig = plt.figure(figsize=(width*2, height*2))
   for i, frame in enumerate(clip):
     ax = fig.add_subplot(width, height, i+1)
     ax.imshow(frame)
@@ -26,15 +26,19 @@ def plot_clip(clip):
   plt.tight_layout()
   plt.show()
 
-def test(ds, subset='train', split=1, batch_size=1, batches=1, epochs=1,
-    sampling='fixed', cache=False, min_seq=16, max_seq=16,
-    shuffle=False, num_workers=0, verbose=True, print_dropped=True, plot=False):
+def test(ds, split=1, subset='train', transform=False,
+    num_frames=16, sampling='fixed', cache=False,
+    batch_size=1, shuffle=False, num_workers=0,
+    batches=1, epochs=1,
+    verbose=True, print_dropped=True, plot=False):
   """Simple test function."""
+
   datasets_dir = config.get('DATASETS_DIR')
-  dl = build_dataloader(datasets_dir, ds, split=split, subset=subset,
-      batch_size=batch_size, sampling=sampling, shuffle=shuffle,
-      min_seq=min_seq, max_seq=max_seq,
-      num_workers=num_workers, verbose=verbose, print_dropped=print_dropped)
+  dl = build_dataloader(datasets_dir,
+      ds, split=split, subset=subset, transform=transform,
+      num_frames=num_frames, sampling=sampling, cache=cache,
+      batch_size=batch_size, shuffle=shuffle, num_workers=num_workers,
+      verbose=verbose, print_dropped=print_dropped)
 
   print(f'Number of batches {len(dl)}')
   for epoch in range(epochs):
@@ -47,9 +51,9 @@ def test(ds, subset='train', split=1, batch_size=1, batches=1, epochs=1,
         f"  y[0] {y[0]}"
       )
       if plot:
-        clip = [x[0][i] for i in range(len(x[0]))]
-        plot_clip(clip)
-
+        for i in range(len(x)):
+          clip = [x[i][j] for j in range(len(x[i]))]
+          plot_clip(clip)
 
 if __name__ == '__main__':
   fire.Fire(test)

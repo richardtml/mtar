@@ -20,20 +20,20 @@ class ARFramesDS(Dataset):
   """Action recognition dataset to load frames."""
 
   def __init__(self, ds_dir, split, subset, transform=None,
-      min_seq=16, max_seq=16, sampling='fixed', cache=False,
+      num_frames=16, sampling='fixed', cache=False,
       verbose=False, print_dropped=False):
 
     if split not in (1, 2, 3):
       raise ValueError(f'invalid split={split}')
     if subset not in ('train', 'test'):
       raise ValueError(f'invalid subset={subset}')
-    if max_seq < min_seq:
-      raise ValueError(f"invalid min_seq={min_seq}<{max_seq}=max_seq")
+    if num_frames < 1:
+      raise ValueError(f"invalid num_frames={num_frames}")
     if sampling not in ('fixed', 'random'):
       raise ValueError(f'invalid sampling={sampling}')
 
     self.transform = transform
-    self.max_seq = max_seq
+    self.num_frames = num_frames
     self.sampling = sampling
     self.frames_dir = join(ds_dir, 'frames')
     self.ds = []
@@ -41,16 +41,18 @@ class ARFramesDS(Dataset):
     splits = zarr.open(join(ds_dir, 'splits.zarr'), 'r')
     split_names = set(splits[str(split)][subset][:])
     dropped = []
-    for y, class_name in enumerate(sorted(listdir(self.frames_dir))):
-      class_path = join(self.frames_dir, class_name)
-      for video_name in sorted(listdir(class_path)):
-        if video_name in split_names:
-          subpath = join(class_name, video_name)
-          num_frames = len(listdir(join(class_path, video_name)))
-          if num_frames >= min_seq:
-            self.ds.append([subpath, y])
-          else:
-            dropped.append([subpath, num_frames])
+    classes_names = sorted(listdir(self.frames_dir), key=str.casefold)
+    for y, class_name in enumerate(classes_names):
+      if class_name[0] != '.':
+        class_path = join(self.frames_dir, class_name)
+        for video_name in sorted(listdir(class_path), key=str.casefold):
+          if video_name in split_names:
+            subpath = join(class_name, video_name)
+            video_num_frames = len(listdir(join(class_path, video_name)))
+            if video_num_frames >= num_frames:
+              self.ds.append([subpath, y])
+            else:
+              dropped.append([subpath, video_num_frames])
 
     if verbose:
       print(
@@ -58,8 +60,7 @@ class ARFramesDS(Dataset):
         f"  with split={split}"
         f" subset={subset}"
         f" samples={len(self)}"
-        f" min_seq={min_seq}"
-        f" max_seq={max_seq}"
+        f" num_frames={num_frames}"
         f" total={len(split_names)}"
         f" dropped={len(split_names) - len(self)}"
       )
@@ -83,14 +84,13 @@ class ARFramesDS(Dataset):
   def __getitem__(self, i):
     frames, y = self.load_video(i)
 
-    seq_size = len(frames)
+    num_frames = len(frames)
     if self.sampling == 'fixed':
-      step = seq_size // self.max_seq
-      idx = np.arange(0, seq_size, step)[:self.max_seq]
+      step = num_frames // self.num_frames
+      idx = np.arange(0, num_frames, step)[:self.num_frames]
     else:
-      print(f'seq_size {seq_size}')
-      idx = np.arange(seq_size)
-      idx = np.random.choice(idx, size=self.max_seq, replace=False)
+      idx = np.arange(num_frames)
+      idx = np.random.choice(idx, size=self.num_frames, replace=False)
 
     frames = [frame for i, frame in enumerate(frames) if i in idx]
 
