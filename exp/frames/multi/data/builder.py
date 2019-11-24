@@ -7,8 +7,8 @@ from os.path import join
 
 import torch
 
-from ards import ARFramesDS
-from vt import VideoShapeTransform, VideoTransform
+from exp.frames.multi.data.ards import ARFramesDS
+from exp.frames.multi.data.vt import VideoShapeTransform, VideoTransform
 from common.data import DataLoader
 
 

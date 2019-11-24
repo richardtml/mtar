@@ -1,6 +1,6 @@
-""" mean.py
+""" rec.py
 
-Simple Mean model for Action Recognition.
+Shared base model for Action Recognition.
 """
 
 from collections import namedtuple
@@ -8,7 +8,6 @@ from collections import namedtuple
 import tensorflow as tf
 from tensorflow.keras import layers
 
-from exp.frames.multi.models.shared import BaseAR
 
 
 FC_CLASSES = {
@@ -17,32 +16,17 @@ FC_CLASSES = {
 }
 
 
-class MeanFC(BaseAR):
+class BaseAR(tf.keras.Model):
 
-  def __init__(self, cfg, verbose=False):
-    super(MeanFC, self).__init__(cfg, verbose)
-    self.gap = layers.GlobalAveragePooling1D(name='gap')
-
-  def call_shared(self, x, training, verbose):
-    # (N, 16, R) => (N, R)
-    x = self.gap(x)
-    if verbose: print(f'gap {x.shape}')
-    # (N, R)
-    return x
-
-
-class FCMean(tf.keras.Model):
-
-  def __init__(self, cfg, verbose=False):
-    super(FCMean, self).__init__()
+  def __init__(self, cfg, verbose):
+    super(BaseAR, self).__init__()
     self.verbose = verbose
     self.bn_in = None
     if cfg.model_bn_in:
       name = f'bn_in'
       bn = layers.BatchNormalization(name=name)
-      setattr(self, name, bn)
       self.bn_in = bn
-    Task = namedtuple('Task', ('name', 'bn_out', 'fc'))
+    Task = namedtuple('Task', ('name', 'bn_out', 'ifc', 'fc'))
     self.tasks = []
     for ds in cfg._dss:
       bn_out = None
@@ -50,12 +34,18 @@ class FCMean(tf.keras.Model):
         name = f'{ds.name}_bn_out'
         bn_out = layers.BatchNormalization(name=name)
         setattr(self, name, bn_out)
-      name = f'{ds.name}_fc'
+      ifc = None
       size = FC_CLASSES[ds.name]
+      if cfg.model_ifc:
+        name = f'{ds.name}_ifc'
+        ifc = layers.Dense(size, activation='relu',
+                use_bias=(not cfg.model_bn_out),
+                name=name)
+        setattr(self, name, ifc)
+      name = f'{ds.name}_fc'
       fc = layers.Dense(size, activation='softmax', name=name)
       setattr(self, name, fc)
-      self.tasks.append(Task(ds.name, bn_out, fc))
-    self.gap = layers.GlobalAveragePooling1D(name='gap')
+      self.tasks.append(Task(ds.name, bn_out, ifc, fc))
 
   def call_in_shared(self, x, training, verbose):
     # (N, 16, R)
@@ -66,8 +56,13 @@ class FCMean(tf.keras.Model):
       if verbose: print(f'bn_in {x.shape}')
     return x
 
+  def call_shared(self, x, training, verbose):
+    return x
+
   def call(self, xs, training=False):
     # [T, (N, 16, R)]
+    # if isinstance(xs, (np.ndarray, tf.Tensor)):
+    #   xs = tf.unstack(xs)
     if len(xs) != len(self.tasks):
       raise ValueError(f'len(xs)=={len(xs)}!={len(self.tasks)}==len(tasks)')
     xs = list(xs)
@@ -78,19 +73,19 @@ class FCMean(tf.keras.Model):
       if x is not None:
         # (N, 16, R) => (N, 16, R)
         x = self.call_in_shared(x, training, verbose_shared)
-        shape = x.shape
-        # (N, 16, R) => (N*16, R)
-        x = tf.reshape(x, (-1, shape[2]))
-        if verbose: print(f'reshape {x.shape}')
-        # (N*16, R) => (N*16, C)
+        # (N, 16, R) => (N, F)
+        x = self.call_shared(x, training, verbose_shared)
+        if task.bn_out is not None:
+          # (N, F) => (N, F)
+          x = task.bn_out(x, training)
+          if verbose: print(f'{task.name}_bn_out {x.shape}')
+        if task.ifc is not None:
+          # (N, F) => (N, C)
+          x = task.ifc(x)
+          if verbose: print(f'{task.name}_ifc {x.shape}')
+        # (N, C) => (N, C)
         x = task.fc(x)
-        if verbose: print(f'fc {x.shape}')
-        # (N*16, C) => (N, 16, C)
-        x = tf.reshape(x, (shape[0], shape[1], -1))
-        if verbose: print(f'reshape {x.shape}')
-        # (N, 16, C) => (N, C)
-        x = self.gap(x)
-        if verbose: print(f'gap {x.shape}')
+        if verbose: print(f'{task.name}_fc {x.shape}')
         xs[i] = x
         if verbose_shared:
           verbose_shared = False

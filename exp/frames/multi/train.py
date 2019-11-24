@@ -14,12 +14,12 @@ import mlflow
 import numpy as np
 import tensorflow as tf
 import torch
-from tqdm import trange
+from tqdm import tqdm, trange
 
 from common import config
 from common.utils import timestamp
 from data import build_dataloader
-from exp.experiment import BaseExperiment
+from experiment.experiment import BaseExperiment
 import models
 import utils
 
@@ -53,7 +53,7 @@ def build_tasks_eval(datasets_dir, run_dir, cfg):
     for ds in cfg._dss:
       dl = build_dataloader(datasets_dir=datasets_dir,
           ds=ds.name, split=ds.split, subset=name,
-          batch_size=cfg.train_ebatch, cache=True)
+          batch_size=cfg.train_ebatch, cache=False)
       loss = tf.keras.metrics.SparseCategoricalCrossentropy()
       acc = tf.keras.metrics.SparseCategoricalAccuracy()
       tasks.append(Task(ds.name, dl, loss, acc))
@@ -130,6 +130,21 @@ def build_tzip(cfg):
     raise ValueError(f'invalid param train_strategy={strategy}')
 
 @tf.function
+def compute_reps(xs, extractor):
+  reps = []
+  for x in xs:
+    if x is not None:
+      x = x / 255
+      n, f, h, w, c = tf.unstack(x.shape)
+      x = tf.reshape(x, (n*f, h, w, c))
+      x = extractor(x)
+      x = tf.reshape(x, (n, f, -1))
+      reps.append(x)
+    else:
+      reps.append(None)
+  return reps
+
+@tf.function
 def train_step(xs, ys_true, model, loss_fn, opt, alphas):
   with tf.GradientTape() as tape:
     ys_pred = model(xs, training=True)
@@ -175,6 +190,8 @@ def train(cfg):
   run_dir = join(config.get('RESULTS_DIR'), cfg.exp, cfg.run)
   cfg.save(run_dir)
 
+
+  extractor = models.load_cnn_extractor()
   ModelClass = models.get_model_class(cfg.model)
   model = ModelClass(cfg)
 
@@ -186,12 +203,13 @@ def train(cfg):
 
   weights_dir = join(run_dir, 'weights')
   for epoch in trange(cfg.train_epochs):
-    for batches in tzip(*trn_dls):
+    for batches in tqdm(tzip(*trn_dls)):
       xs, ys_true = zip(*batches)
+      xs = compute_reps(xs, extractor)
       train_step(xs, ys_true, model, loss_fn, opt, cfg.opt_alphas)
-      eval_step(model, tasks_eval)
-    eval_epoch(epoch, tasks_eval)
-    model.save_weights(join(weights_dir, f'{epoch:03d}.ckpt'))
+    #   eval_step(model, tasks_eval)
+    # eval_epoch(epoch, tasks_eval)
+    # model.save_weights(join(weights_dir, f'{epoch:03d}.ckpt'))
 
 
 class RunConfig(BaseExperiment):
@@ -201,7 +219,7 @@ class RunConfig(BaseExperiment):
       run=None,
       exp='multi',
       # model
-      model='SFrame',
+      model='MeanFC',
       model_bn_in=0,
       model_bn_out=0,
       model_rec_type='gru',
@@ -221,8 +239,8 @@ class RunConfig(BaseExperiment):
       # training
       train_strategy='shortest',
       train_epochs=2,
-      train_tbatch=128,
-      train_ebatch=64,
+      train_tbatch=32,
+      train_ebatch=16,
       # optimizer
       opt='sgd',
       opt_lr=1e-2,
@@ -232,6 +250,7 @@ class RunConfig(BaseExperiment):
       # cache
       dss_sampling='fixed',
       dss_cache=False,
+      dss_num_workers=0,
     ):
     run = f'{timestamp()}-{model}-{train_strategy}'
     self.update(
