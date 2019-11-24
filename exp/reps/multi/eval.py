@@ -173,8 +173,10 @@ def filter_runs_dirs(runs_dirs):
 
 def eval_exp(exp_dir, batch_size=128):
   import subprocess
-  results = pd.read_csv(f'{exp_dir}/results.csv', index_col=0)
-  dfs = [results]
+
+  dfs = []
+  if os.path.exists(f'{exp_dir}/results.csv'):
+    dfs.append(results = pd.read_csv(f'{exp_dir}/results.csv', index_col=0))
   runs_dirs = sorted([join(exp_dir, d) for d in os.listdir(exp_dir)])
   runs_dirs = filter_runs_dirs(runs_dirs)
   print(runs_dirs)
