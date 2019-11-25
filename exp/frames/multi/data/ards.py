@@ -43,17 +43,17 @@ class ARFramesDS(Dataset):
     split_names = set(splits[str(split)][subset][:])
     dropped = []
     classes_names = sorted(listdir(self.frames_dir), key=str.casefold)
+    classes_names = [c for c in classes_names if c[0] != '.']
     for y, class_name in enumerate(classes_names):
-      if class_name[0] != '.':
-        class_path = join(self.frames_dir, class_name)
-        for video_name in sorted(listdir(class_path), key=str.casefold):
-          if video_name in split_names:
-            subpath = join(class_name, video_name)
-            video_num_frames = len(listdir(join(class_path, video_name)))
-            if video_num_frames >= num_frames:
-              self.ds.append([subpath, y])
-            else:
-              dropped.append([subpath, video_num_frames])
+      class_path = join(self.frames_dir, class_name)
+      for video_name in sorted(listdir(class_path), key=str.casefold):
+        if video_name in split_names:
+          subpath = join(class_name, video_name)
+          video_num_frames = len(listdir(join(class_path, video_name)))
+          if video_num_frames >= num_frames:
+            self.ds.append([subpath, y])
+          else:
+            dropped.append([subpath, video_num_frames])
 
     if verbose:
       print(
