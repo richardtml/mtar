@@ -35,7 +35,6 @@ class ARFramesDS(Dataset):
     self.transform = transform
     self.num_frames = num_frames
     self.sampling = sampling
-    self.cache = cache
     self.frames_dir = join(ds_dir, 'frames')
     self.ds = []
 
@@ -81,8 +80,7 @@ class ARFramesDS(Dataset):
     frames = []
     for frame_path in sorted(listdir(video_dir)):
       frame = Image.open(join(video_dir, frame_path))
-      if self.cache:
-        frame.load()
+      frame.load()
       frames.append(frame)
     return frames, y
 
