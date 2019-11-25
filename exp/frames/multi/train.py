@@ -33,7 +33,7 @@ def build_trn_dls(datasets_dir, cfg):
   dls = []
   for ds in cfg._dss:
     dl = build_dataloader(datasets_dir=datasets_dir,
-        ds=ds.name, split=ds.split, subset='train',
+        ds=ds.name, split=ds.split, subset='train', transform=cfg.dss_augment,
         batch_size=cfg.train_tbatch, sampling=cfg.dss_sampling,
         cache=cfg.dss_cache, num_workers=cfg.dss_num_workers)
     dls.append(dl)
@@ -192,6 +192,7 @@ class RunConfig(utils.BaseExperiment):
       opt_nesterov=False,
       opt_alphas=[1, 1],
       # cache
+      dss_augment=0,
       dss_sampling='fixed',
       dss_cache=False,
       dss_num_workers=2,

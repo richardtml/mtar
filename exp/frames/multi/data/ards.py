@@ -35,6 +35,7 @@ class ARFramesDS(Dataset):
     self.transform = transform
     self.num_frames = num_frames
     self.sampling = sampling
+    self.cache = cache
     self.frames_dir = join(ds_dir, 'frames')
     self.ds = []
 
@@ -66,7 +67,6 @@ class ARFramesDS(Dataset):
       )
     if cache:
       if verbose: print(f"Enabling cache")
-      self.cache = True
       self.load_video = lru_cache(maxsize=len(self))(self.load_video_)
     else:
       self.load_video = self.load_video_
