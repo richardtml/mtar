@@ -146,7 +146,7 @@ def train(cfg):
 
   weights_dir = join(run_dir, 'weights')
   for epoch in trange(cfg.train_epochs):
-    for batches in tqdm(tzip(*trn_dls)):
+    for batches in tqdm(tzip(*trn_dls), leave=True):
       batches = utils.batches_to_numpy(batches)
       xs, ys_true = zip(*batches)
       xs = compute_reps(xs, extractor)
