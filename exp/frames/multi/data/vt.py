@@ -3,6 +3,7 @@
 Video Transform.
 """
 
+import numbers
 import numpy as np
 import PIL
 import scipy
@@ -43,6 +44,47 @@ class Resize:
     elif interp == 'cubic':
       return PIL.Image.CUBIC
 
+class CenterCrop(object):
+  """
+  Extract center crop of thevideo.
+  Args:
+    size (sequence or int): Desired output size for the crop in format (h, w).
+  """
+  def __init__(self, size):
+    if isinstance(size, numbers.Number):
+      if size < 0:
+        raise ValueError('If size is a single number, it must be positive')
+      size = (size, size)
+    else:
+      if len(size) != 2:
+        raise ValueError('If size is a sequence, it must be of len 2.')
+    self.size = size
+
+  def __call__(self, clip):
+    crop_h, crop_w = self.size
+    if isinstance(clip[0], np.ndarray):
+      im_h, im_w, _ = clip[0].shape
+    elif isinstance(clip[0], PIL.Image.Image):
+      im_w, im_h = clip[0].size
+    else:
+      raise TypeError('Expected numpy.ndarray or PIL.Image' +
+        'but got list of {0}'.format(type(clip[0])))
+
+    if crop_w > im_w or crop_h > im_h:
+      return clip
+      # error_msg = ('Initial image size should be larger then' +
+      #   'cropped size but got cropped sizes : ' +
+      #   '({w}, {h}) while initial image is ({im_w}, ' +
+      #   '{im_h})'.format(im_w=im_w, im_h=im_h, w=crop_w, h=crop_h))
+      # raise ValueError(error_msg)
+
+    w1 = int(round((im_w - crop_w) / 2.))
+    h1 = int(round((im_h - crop_h) / 2.))
+
+    if isinstance(clip[0], np.ndarray):
+      return [img[h1:h1 + crop_h, w1:w1 + crop_w, :] for img in clip]
+    elif isinstance(clip[0], PIL.Image.Image):
+      return [img.crop((w1, h1, w1 + crop_w, h1 + crop_h)) for img in clip]
 
 class VideoShapeTransform:
   """Reshape video transform."""
@@ -73,9 +115,9 @@ class VideoTransform:
       # Extract center crop of the video
       sometimes(
         va.OneOf([
-          va.CenterCrop((224,224)),
-          va.CenterCrop((200,200)),
-          va.CenterCrop((180,180)),
+          CenterCrop((224,224)),
+          CenterCrop((200,200)),
+          CenterCrop((180,180)),
         ]),
       ),
       # Augmenter that sets a certain fraction of pixel intesities to 255,
