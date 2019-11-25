@@ -4,8 +4,6 @@
 import os
 import random
 from collections import namedtuple
-from functools import partial
-from itertools import zip_longest
 from os.path import join
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -16,12 +14,11 @@ import tensorflow as tf
 import torch
 from tqdm import tqdm, trange
 
+import models
+import utils
 from common import config
 from common.utils import timestamp
 from data import build_dataloader
-from experiment.experiment import BaseExperiment
-import models
-import utils
 
 
 seed = config.get('SEED')
@@ -38,7 +35,7 @@ def build_trn_dls(datasets_dir, cfg):
     dl = build_dataloader(datasets_dir=datasets_dir,
         ds=ds.name, split=ds.split, subset='train',
         batch_size=cfg.train_tbatch, sampling=cfg.dss_sampling,
-        cache=cfg.dss_cache)
+        cache=cfg.dss_cache, num_workers=cfg.dss_num_workers)
     dls.append(dl)
   return dls
 
@@ -53,7 +50,8 @@ def build_tasks_eval(datasets_dir, run_dir, cfg):
     for ds in cfg._dss:
       dl = build_dataloader(datasets_dir=datasets_dir,
           ds=ds.name, split=ds.split, subset=name,
-          batch_size=cfg.train_ebatch, cache=False)
+          batch_size=cfg.train_ebatch,
+          cache=False, num_workers=cfg.dss_num_workers)
       loss = tf.keras.metrics.SparseCategoricalCrossentropy()
       acc = tf.keras.metrics.SparseCategoricalAccuracy()
       tasks.append(Task(ds.name, dl, loss, acc))
@@ -68,66 +66,6 @@ def build_loss_opt(cfg):
   opt = tf.keras.optimizers.SGD(learning_rate=cfg.opt_lr,
     momentum=cfg.opt_momentum, nesterov=cfg.opt_nesterov)
   return loss_fn, opt
-
-def tzip_refill(*dls):
-  sizes = [len(dl) for dl in dls]
-  i_max_dl = np.argmax(sizes)
-  its = [iter(dl) for dl in dls]
-  while True:
-    batches = []
-    for i in range(len(its)):
-      try:
-        batch = next(its[i])
-        batches.append(batch)
-      except StopIteration:
-        if i != i_max_dl:
-          its[i] = iter(dls[i])
-          batch = next(its[i])
-          batches.append(batch)
-        else:
-          return
-    yield batches
-
-def tzip_interleave(*dls, fillvalue=(None, None)):
-  sizes = np.array([len(dl) for dl in dls])
-  max_size = np.max(sizes)
-  steps = [max_size // size for size in sizes]
-  masks = [np.zeros(max_size) for _ in sizes]
-  for mask, size, step in zip(masks, sizes, steps):
-    indices = np.arange(0, size*step, step)
-    remaining = (max_size - 1) - indices[-1]
-    if remaining:
-      #print('indices', indices)
-      #print('remaining', remaining)
-      offset = np.arange(remaining)
-      #print('offset', offset)
-      if max_size % size:
-        indices[-len(offset):] = indices[-len(offset):] + offset[:len(indices)]
-    np.put(mask, indices, np.ones_like(indices))
-  its = [iter(dl) for dl in dls]
-  for batches_mask in zip(*masks):
-    batches = []
-    for batch_mask, it in zip(batches_mask, its):
-      if batch_mask:
-        batch = next(it)
-      else:
-        batch = fillvalue
-      batches.append(batch)
-    yield batches
-
-def build_tzip(cfg):
-  """Builds training strategy zip."""
-  strategy = cfg.train_strategy
-  if strategy == 'shortest':
-    return zip
-  elif strategy == 'longest':
-    return partial(zip_longest, fillvalue=(None, None))
-  elif strategy == 'refill':
-    return tzip_refill
-  elif strategy == 'interleave':
-    return tzip_interleave
-  else:
-    raise ValueError(f'invalid param train_strategy={strategy}')
 
 @tf.function
 def compute_reps(xs, extractor):
@@ -156,18 +94,23 @@ def train_step(xs, ys_true, model, loss_fn, opt, alphas):
   gradients = tape.gradient(loss, model.trainable_variables)
   opt.apply_gradients(zip(gradients, model.trainable_variables))
 
-def eval_step_subset(model, subset):
-  batches = [task.dl.first() for task in subset.tasks]
-  xs, ys_true = zip(*batches)
+@tf.function
+def eval_step_subset_model(model, xs, ys_true, tasks):
   ys_pred = model(xs)
-  for y_true, y_pred, task in zip(ys_true, ys_pred, subset.tasks):
+  for y_true, y_pred, task in zip(ys_true, ys_pred, tasks):
     task.loss(y_true, y_pred)
     task.acc(y_true, y_pred)
 
-@tf.function
-def eval_step(model, tasks_eval):
-  eval_step_subset(model, tasks_eval.trn)
-  eval_step_subset(model, tasks_eval.tst)
+def eval_step_subset(extractor, model, subset):
+  batches = [next(iter(task.dl)) for task in subset.tasks]
+  batches = utils.batches_to_numpy(batches)
+  xs, ys_true = zip(*batches)
+  xs = compute_reps(xs, extractor)
+  eval_step_subset_model(model, xs, ys_true, subset.tasks)
+
+def eval_step(extractor, model, tasks_eval):
+  eval_step_subset(extractor, model, tasks_eval.trn)
+  eval_step_subset(extractor, model, tasks_eval.tst)
 
 def eval_epoch_subset(epoch, subset):
   with subset.writer.as_default():
@@ -197,22 +140,23 @@ def train(cfg):
 
   datasets_dir = config.get('DATASETS_DIR')
   trn_dls = build_trn_dls(datasets_dir, cfg)
-  tzip = build_tzip(cfg)
+  tzip = utils.build_tzip(cfg)
   loss_fn, opt = build_loss_opt(cfg)
   tasks_eval = build_tasks_eval(datasets_dir, run_dir, cfg)
 
   weights_dir = join(run_dir, 'weights')
   for epoch in trange(cfg.train_epochs):
     for batches in tqdm(tzip(*trn_dls)):
+      batches = utils.batches_to_numpy(batches)
       xs, ys_true = zip(*batches)
       xs = compute_reps(xs, extractor)
       train_step(xs, ys_true, model, loss_fn, opt, cfg.opt_alphas)
-    #   eval_step(model, tasks_eval)
-    # eval_epoch(epoch, tasks_eval)
-    # model.save_weights(join(weights_dir, f'{epoch:03d}.ckpt'))
+      eval_step(extractor, model, tasks_eval)
+    eval_epoch(epoch, tasks_eval)
+    model.save_weights(join(weights_dir, f'{epoch:03d}.ckpt'))
 
 
-class RunConfig(BaseExperiment):
+class RunConfig(utils.BaseExperiment):
 
   def __init__(self,
       # experiment
@@ -238,9 +182,9 @@ class RunConfig(BaseExperiment):
       ucf101_split=1,
       # training
       train_strategy='shortest',
-      train_epochs=2,
-      train_tbatch=32,
-      train_ebatch=16,
+      train_epochs=1,
+      train_tbatch=16,
+      train_ebatch=8,
       # optimizer
       opt='sgd',
       opt_lr=1e-2,
@@ -250,7 +194,7 @@ class RunConfig(BaseExperiment):
       # cache
       dss_sampling='fixed',
       dss_cache=False,
-      dss_num_workers=0,
+      dss_num_workers=2,
     ):
     run = f'{timestamp()}-{model}-{train_strategy}'
     self.update(
@@ -258,7 +202,7 @@ class RunConfig(BaseExperiment):
     )
 
   def __call__(self):
-    self._dss = utils.build_datasets(self)
+    self._dss = utils.build_datasets_cfg(self)
     train(self)
 
 

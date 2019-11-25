@@ -66,6 +66,7 @@ class ARFramesDS(Dataset):
       )
     if cache:
       if verbose: print(f"Enabling cache")
+      self.cache = True
       self.load_video = lru_cache(maxsize=len(self))(self.load_video_)
     else:
       self.load_video = self.load_video_
@@ -77,8 +78,12 @@ class ARFramesDS(Dataset):
   def load_video_(self, i):
     subpath, y = self.ds[i]
     video_dir = join(self.frames_dir, subpath)
-    frames = [Image.open(join(video_dir, frame_path))
-        for frame_path in sorted(listdir(video_dir))]
+    frames = []
+    for frame_path in sorted(listdir(video_dir)):
+      frame = Image.open(join(video_dir, frame_path))
+      if self.cache:
+        frame.load()
+      frames.append(frame)
     return frames, y
 
   def __getitem__(self, i):

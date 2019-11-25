@@ -5,6 +5,7 @@ Simple test for datasets.
 
 import math
 import os
+from itertools import islice
 
 import fire
 import matplotlib.pyplot as plt
@@ -41,7 +42,7 @@ def test(ds, split=1, subset='train', transform=False,
   print(f'Number of batches {len(dl)}')
   for epoch in range(epochs):
     print(f'Epoch {epoch}')
-    for x, y in dl.take(batches):
+    for x, y in islice(dl, batches):
       print(
         f"  x.shape {x.shape}\n"
         f"  x.flatten()[:10] {x.flatten()[:10]}\n"

@@ -3,18 +3,57 @@
 Video Transform.
 """
 
+import numpy as np
+import PIL
+import scipy
 from vidaug import augmentors as va
 
 
+class Resize:
+  """
+  Resize video.
+  Args:
+    size (float, float): shato to resize.
+    interp (string): Interpolation to use for re-sizing
+    ('nearest', 'lanczos', 'bilinear', 'bicubic' or 'cubic').
+  """
+
+  def __init__(self, size, interp='bilinear'):
+    self.size = size
+    self.interpolation = interp
+
+  def __call__(self, clip):
+    if isinstance(clip[0], np.ndarray):
+      return [scipy.misc.imresize(img, size=self.size,interp=self.interpolation) for img in clip]
+    elif isinstance(clip[0], PIL.Image.Image):
+      return [img.resize(size=self.size, resample=self._get_PIL_interp(self.interpolation)) for img in clip]
+    else:
+      raise TypeError('Expected numpy.ndarray or PIL.Image' +
+        'but got list of {0}'.format(type(clip[0])))
+
+  def _get_PIL_interp(self, interp):
+    if interp == 'nearest':
+      return PIL.Image.NEAREST
+    elif interp == 'lanczos':
+      return PIL.Image.LANCZOS
+    elif interp == 'bilinear':
+      return PIL.Image.BILINEAR
+    elif interp == 'bicubic':
+      return PIL.Image.BICUBIC
+    elif interp == 'cubic':
+      return PIL.Image.CUBIC
+
+
 class VideoShapeTransform:
-  """Video transform for data augmentation."""
+  """Reshape video transform."""
 
   def __init__(self, shape=(224, 224)):
-    self.shape = shape
+    self.seq = va.Sequential([
+      Resize(shape)
+    ])
 
   def __call__(self, frames):
-    frames = [frame.resize(self.shape) for frame in frames]
-    return frames
+    return self.seq(frames)
 
 class VideoTransform:
   """Video transform for data augmentation."""
@@ -62,9 +101,9 @@ class VideoTransform:
       # Rotate video randomly by a random angle within given bounds
       sometimes(
         va.OneOf([
+          va.RandomRotate(degrees=5),
           va.RandomRotate(degrees=10),
           va.RandomRotate(degrees=15),
-          va.RandomRotate(degrees=25),
         ]),
       ),
       # Shifting video in X and Y coordinates
@@ -76,11 +115,9 @@ class VideoTransform:
         ]),
       ),
       # Horizontally flip the video with 50% probability
-      sometimes(va.HorizontalFlip())
+      sometimes(va.HorizontalFlip()),
+      Resize(shape)
     ])
-    self.shape = shape
 
   def __call__(self, frames):
-    frames = self.seq(frames)
-    frames = [frame.resize(self.shape) for frame in frames]
-    return frames
+    return self.seq(frames)
