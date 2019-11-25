@@ -167,18 +167,18 @@ class RunConfig(utils.BaseExperiment):
       model_bn_in=0,
       model_bn_out=0,
       model_rec_type='gru',
-      model_rec_size=128,
+      model_rec_size=512,
       model_rec_layers=1,
       model_rec_bi=0,
       model_rec_bi_merge='concat',
-      model_conv2d_filters=160,
+      model_conv2d_filters=512,
       model_conv1d_filters=160,
       model_dropout=0.5,
       model_ifc=0,
       # datasets
-      hmdb51=True,
+      hmdb51=False,
       hmdb51_split=1,
-      ucf101=True,
+      ucf101=False,
       ucf101_split=1,
       # training
       train_strategy='shortest',
@@ -204,6 +204,9 @@ class RunConfig(utils.BaseExperiment):
 
   def __call__(self):
     self._dss = utils.build_datasets_cfg(self)
+    if len(self._dss) == 0:
+      print('You must choose at least one task to train :).')
+      return
     train(self)
 
 
