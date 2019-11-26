@@ -144,7 +144,7 @@ def train(cfg):
 
   weights_dir = join(run_dir, 'weights')
   for epoch in trange(cfg.train_epochs):
-    for batches in tqdm(tzip(*trn_dls), leave=True):
+    for batches in tqdm(tzip(*trn_dls), leave=False):
       xs, ys_true = zip(*batches)
       xs = compute_reps(xs, extractor)
       train_step(xs, ys_true, model, loss_fn, opt, cfg.opt_alphas)
