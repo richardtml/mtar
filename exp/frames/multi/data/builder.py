@@ -5,6 +5,7 @@ Datasets Builder.
 
 from os.path import join
 
+import numpy as np
 import torch
 
 from exp.frames.multi.data.ards import ARFramesDS
@@ -31,6 +32,12 @@ def build_dataloader(datasets_dir, ds, split, subset,
       num_frames=num_frames, sampling=sampling, cache=cache,
       verbose=verbose, print_dropped=print_dropped)
   dl = DataLoader(ds, batch_size=batch_size,
-      shuffle=shuffle, num_workers=num_workers)
+      shuffle=shuffle, num_workers=num_workers, collate_fn=collate)
 
   return dl
+
+
+def collate(batch):
+  """Custom collate to avoid producing torch.Tensor."""
+  xs, ys = zip(*batch)
+  return np.stack(xs), np.array(ys, dtype=np.int32)

@@ -100,6 +100,7 @@ class ARFramesDS(Dataset):
     if self.transform:
       frames = self.transform(frames)
     x = np.stack([np.asarray(frame) for frame in frames])
+    x = np.divide(x, 255, dtype=np.float32)
 
     return x, y
 

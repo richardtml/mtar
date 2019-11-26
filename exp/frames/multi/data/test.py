@@ -44,9 +44,9 @@ def test(ds, split=1, subset='train', transform=False,
     print(f'Epoch {epoch}')
     for x, y in islice(dl, batches):
       print(
-        f"  x.shape {x.shape}\n"
-        f"  x.flatten()[:10] {x.flatten()[:10]}\n"
-        f"  y.shape {y.shape}\n"
+        f"  x {x.dtype} {x.shape}\n"
+        f"  x.flatten()[:5] {x.flatten()[:5]}\n"
+        f"  y {y.dtype} {y.shape}\n"
         f"  y[0] {y[0]}"
       )
       if plot:

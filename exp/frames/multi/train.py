@@ -72,7 +72,6 @@ def compute_reps(xs, extractor):
   reps = []
   for x in xs:
     if x is not None:
-      x = x / 255
       n, f, h, w, c = tf.unstack(x.shape)
       x = tf.reshape(x, (n*f, h, w, c))
       x = extractor(x)
@@ -103,7 +102,6 @@ def eval_step_subset_model(model, xs, ys_true, tasks):
 
 def eval_step_subset(extractor, model, subset):
   batches = [next(iter(task.dl)) for task in subset.tasks]
-  batches = utils.batches_to_numpy(batches)
   xs, ys_true = zip(*batches)
   xs = compute_reps(xs, extractor)
   eval_step_subset_model(model, xs, ys_true, subset.tasks)
@@ -147,7 +145,6 @@ def train(cfg):
   weights_dir = join(run_dir, 'weights')
   for epoch in trange(cfg.train_epochs):
     for batches in tqdm(tzip(*trn_dls), leave=True):
-      batches = utils.batches_to_numpy(batches)
       xs, ys_true = zip(*batches)
       xs = compute_reps(xs, extractor)
       train_step(xs, ys_true, model, loss_fn, opt, cfg.opt_alphas)
