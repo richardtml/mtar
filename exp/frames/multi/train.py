@@ -53,16 +53,13 @@ class SubsetContext:
         shuffle=shuffle, num_workers=cfg.dss_num_workers)
       loss = tf.keras.metrics.SparseCategoricalCrossentropy()
       acc = tf.keras.metrics.SparseCategoricalAccuracy()
-      task = Task(ds.name, dl, loss, acc)
-      self.tasks.append(task)
+      self.tasks.append(Task(ds.name, dl, loss, acc))
 
     self.dls = [task.dl for task in self.tasks]
 
 def build_subsets_contexts(datasets_dir, run_dir, cfg):
-  return [
-    SubsetContext('trn', 'train', datasets_dir, run_dir, cfg),
-    SubsetContext('tst', 'test', datasets_dir, run_dir, cfg)
-  ]
+  return [SubsetContext('trn', 'train', datasets_dir, run_dir, cfg),
+          SubsetContext('tst', 'test', datasets_dir, run_dir, cfg)]
 
 def build_loss_opt(cfg):
   """Builds loss and optimization objects."""
@@ -199,15 +196,15 @@ class RunConfig(utils.BaseExperiment):
       opt_momentum=0.0,
       opt_nesterov=False,
       opt_alphas=[1, 1],
-      # cache
-      dss_augment=1,
-      dss_sampling='random',
-      dss_cache=False,
-      dss_num_workers=4,
       # eval
       eval_trn_freq=1,
       eval_tst_freq=1,
       save_freq=0,
+      # dss
+      dss_augment=1,
+      dss_sampling='random',
+      dss_cache=False,
+      dss_num_workers=4,
     ):
     run = f'{timestamp()}-{model}-{train_strategy}'
     self.update(

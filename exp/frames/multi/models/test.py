@@ -54,9 +54,14 @@ def test(cfg):
   print(cfg)
   Model = get_model_class(cfg.model)
   print(Model.__name__)
-  batch = [np.zeros(cfg.batch, dtype=np.float32) for _ in range(len(cfg._dss))]
+  xs = [np.zeros(cfg.batch, dtype=np.float32) for _ in range(len(cfg._dss))]
   model = Model(cfg, verbose=True)
-  model(batch)
+  ys = model(xs)
+  for i, y in enumerate(ys):
+    print(
+      f"  ys[{i}] {y.dtype} {y.shape}\n"
+      f"  ys[{i}] {y.numpy().flatten()[:5]}"
+    )
   model.summary()
 
 
