@@ -67,8 +67,11 @@ def build_subsets_contexts(datasets_dir, run_dir, cfg):
 def build_loss_opt(cfg):
   """Builds loss and optimization objects."""
   loss_fn = tf.keras.losses.SparseCategoricalCrossentropy()
-  opt = tf.keras.optimizers.SGD(learning_rate=cfg.opt_lr,
-    momentum=cfg.opt_momentum, nesterov=cfg.opt_nesterov)
+  if cfg.opt == 'sgd':
+    opt = tf.keras.optimizers.SGD(learning_rate=cfg.opt_lr,
+      momentum=cfg.opt_momentum, nesterov=cfg.opt_nesterov)
+  elif cfg.opt == 'adam':
+    opt = tf.keras.optimizers.Adam(learning_rate=cfg.opt_lr)
   return loss_fn, opt
 
 @tf.function
@@ -147,8 +150,7 @@ def train(cfg):
   loss_fn, opt = build_loss_opt(cfg)
 
   weights_dir = join(run_dir, 'weights')
-  for epoch in trange(cfg.train_epochs, desc=' epochs',
-      leave=True, ncols=TQDM_NCOLS):
+  for epoch in trange(cfg.train_epochs, desc=' epochs', ncols=TQDM_NCOLS):
     train_epoch(epoch, trn_zip, extractor, model,
       loss_fn, opt, cfg.opt_alphas, trn_ctx)
     if (epoch + 1) % cfg.eval_tst_freq == 0:
@@ -165,7 +167,7 @@ class RunConfig(utils.BaseExperiment):
       exp='frames',
       # model
       model='MeanFC',
-      model_bn_in=0,
+      model_bn_in=1,
       model_bn_out=0,
       model_rec_type='gru',
       model_rec_size=512,
@@ -173,7 +175,7 @@ class RunConfig(utils.BaseExperiment):
       model_rec_bi=0,
       model_rec_bi_merge='concat',
       model_conv2d_filters=512,
-      model_conv1d_filters=160,
+      model_conv1d_filters=512,
       model_dropout=0.5,
       model_ifc=0,
       # datasets
@@ -185,7 +187,7 @@ class RunConfig(utils.BaseExperiment):
       train_strategy='shortest',
       train_epochs=1,
       train_tbatch=16,
-      train_ebatch=8,
+      train_ebatch=16,
       # optimizer
       opt='sgd',
       opt_lr=1e-2,
