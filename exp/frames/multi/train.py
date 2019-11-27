@@ -105,12 +105,12 @@ def train_step(xs, ys_true, model, loss_fn, opt, alphas, ctx):
   gradients = tape.gradient(loss, model.trainable_variables)
   opt.apply_gradients(zip(gradients, model.trainable_variables))
 
-def train_epoch(epoch, tzip, extractor, model, loss_fn, opt, opt_alphas, ctx):
+def train_epoch(epoch, tzip, extractor, model, loss_fn, opt, alphas, ctx):
   for batches in tqdm(tzip(*ctx.dls), leave=False,
       desc='  train', ncols=TQDM_NCOLS):
     xs, ys_true = zip(*batches)
     xs = compute_reps(xs, extractor)
-    train_step(xs, ys_true, model, loss_fn, opt, opt_alphas, ctx)
+    train_step(xs, ys_true, model, loss_fn, opt, alphas, ctx)
 
 @tf.function
 def test_step(xs, ys_true, model, ctx):
@@ -153,10 +153,13 @@ def train(cfg):
 
   weights_dir = join(run_dir, 'weights')
   for epoch in trange(cfg.train_epochs, desc=' epochs', ncols=TQDM_NCOLS):
+
     train_epoch(epoch, trn_zip, extractor, model,
       loss_fn, opt, cfg.opt_alphas, trn_ctx)
+
     if cfg.eval_tst_freq and ((epoch + 1) % cfg.eval_tst_freq == 0):
       test_epoch(epoch, tst_zip, extractor, model, trn_ctx, tst_ctx)
+
     if cfg.save_freq and ((epoch + 1) % cfg.save_freq == 0):
       model.save_weights(join(weights_dir, f'{epoch:03d}.ckpt'))
 

@@ -14,7 +14,7 @@ import numpy as np
 from builder import build_dataloader
 from common import config
 
-def plot_clip(clip):
+def plot_clip(clip, y):
   height = math.ceil(math.sqrt(len(clip)))
   width = height if height * height == len(clip) else height + 1
   fig = plt.figure(figsize=(width*2, height*2))
@@ -24,6 +24,7 @@ def plot_clip(clip):
     ax.set_xticks([])
     ax.set_yticks([])
   plt.tight_layout()
+  fig.suptitle(y)
   plt.show()
 
 def test(ds, split=1, subset='train', transform=False,
@@ -51,10 +52,8 @@ def test(ds, split=1, subset='train', transform=False,
         f"  y[0] {y[0]}"
       )
       if plot:
-        clips = [a.squeeze(axis=0) for a in np.split(x, x.shape[0])]
-        for clip in clips:
-          clip = [a.squeeze(axis=0) for a in np.split(clip, clip.shape[0])]
-          plot_clip(clip)
+        for xi, yi in zip(x, y):
+          plot_clip(xi, yi)
 
 if __name__ == '__main__':
   fire.Fire(test)
