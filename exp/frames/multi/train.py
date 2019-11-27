@@ -106,7 +106,7 @@ def train_step(xs, ys_true, model, loss_fn, opt, alphas, ctx):
   opt.apply_gradients(zip(gradients, model.trainable_variables))
 
 def train_epoch(epoch, tzip, extractor, model, loss_fn, opt, opt_alphas, ctx):
-  for batches in tqdm(tzip(*ctx.dls), leave=True,
+  for batches in tqdm(tzip(*ctx.dls), leave=False,
       desc='  train', ncols=TQDM_NCOLS):
     xs, ys_true = zip(*batches)
     xs = compute_reps(xs, extractor)
@@ -121,7 +121,7 @@ def test_step(xs, ys_true, model, ctx):
       task.acc(y_true, y_pred)
 
 def test_epoch(epoch, tzip, extractor, model, trn_ctx, tst_ctx):
-  for batches in tqdm(tzip(*tst_ctx.dls), leave=True,
+  for batches in tqdm(tzip(*tst_ctx.dls), leave=False,
       desc='   test', ncols=TQDM_NCOLS):
     xs, ys_true = zip(*batches)
     xs = compute_reps(xs, extractor)
@@ -155,9 +155,9 @@ def train(cfg):
   for epoch in trange(cfg.train_epochs, desc=' epochs', ncols=TQDM_NCOLS):
     train_epoch(epoch, trn_zip, extractor, model,
       loss_fn, opt, cfg.opt_alphas, trn_ctx)
-    if (epoch + 1) % cfg.eval_tst_freq == 0:
+    if cfg.eval_tst_freq and ((epoch + 1) % cfg.eval_tst_freq == 0):
       test_epoch(epoch, tst_zip, extractor, model, trn_ctx, tst_ctx)
-    if (epoch + 1) % cfg.save_freq == 0:
+    if cfg.save_freq and ((epoch + 1) % cfg.save_freq == 0):
       model.save_weights(join(weights_dir, f'{epoch:03d}.ckpt'))
 
 
@@ -204,7 +204,7 @@ class RunConfig(utils.BaseExperiment):
       # eval
       eval_trn_freq=1,
       eval_tst_freq=1,
-      save_freq=1,
+      save_freq=0,
     ):
     run = f'{timestamp()}-{model}-{train_strategy}'
     self.update(
