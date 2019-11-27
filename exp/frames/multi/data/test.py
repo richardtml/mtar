@@ -9,6 +9,7 @@ from itertools import islice
 
 import fire
 import matplotlib.pyplot as plt
+import numpy as np
 
 from builder import build_dataloader
 from common import config
@@ -50,8 +51,9 @@ def test(ds, split=1, subset='train', transform=False,
         f"  y[0] {y[0]}"
       )
       if plot:
-        for i in range(len(x)):
-          clip = [x[i][j] for j in range(len(x[i]))]
+        clips = [a.squeeze(axis=0) for a in np.split(x, x.shape[0])]
+        for clip in clips:
+          clip = [a.squeeze(axis=0) for a in np.split(clip, clip.shape[0])]
           plot_clip(clip)
 
 if __name__ == '__main__':

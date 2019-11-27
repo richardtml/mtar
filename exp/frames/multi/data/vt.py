@@ -95,7 +95,10 @@ class VideoShapeTransform:
     ])
 
   def __call__(self, frames):
-    return self.seq(frames)
+    frames = [frame for frame in self.seq(frames)]
+    frames = np.stack([np.asarray(frame) for frame in frames])
+    frames = np.divide(frames, 255, dtype=np.float32)
+    return frames
 
 class VideoTransform:
   """Video transform for data augmentation."""
@@ -162,4 +165,7 @@ class VideoTransform:
     ])
 
   def __call__(self, frames):
-    return self.seq(frames)
+    frames = [frame for frame in self.seq(frames)]
+    frames = np.stack([np.asarray(frame) for frame in frames])
+    frames = np.divide(frames, 255, dtype=np.float32)
+    return frames

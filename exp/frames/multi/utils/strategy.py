@@ -52,7 +52,7 @@ def tzip_interleave(*dls, fillvalue=(None, None)):
       batches.append(batch)
     yield batches
 
-class TZipShortest:
+class TrainingZipShortest:
 
   def __init__(self, *dls):
     self.len = min(len(dl) for dl in dls)
@@ -67,15 +67,36 @@ class TZipShortest:
   def __next__(self):
     return [next(it) for it in self.its]
 
+class TrainingZipLongest:
 
-def build_tzip(cfg):
+  def __init__(self, *dls):
+    lens = [len(dl) for dl in dls]
+    self.len = max(lens)
+    self.its = [iter(dl) for dl in dls]
+    self.has_batch = list(zip_longest(*[[True]*len for len in lens]))
+    self.i = 0
+
+  def __iter__(self):
+    return self
+
+  def __len__(self):
+    return self.len
+
+  def __next__(self):
+    if self.i == self.len:
+      raise StopIteration()
+    batches = [next(it) if has_batch else (None, None)
+      for has_batch, it in zip(self.has_batch[self.i], self.its)]
+    self.i += 1
+    return batches
+
+def build_tzip(strategy):
   """Builds training strategy zip."""
-  strategy = cfg.train_strategy
   if strategy == 'shortest':
     # return zip
-    return TZipShortest
+    return TrainingZipShortest
   elif strategy == 'longest':
-    return partial(zip_longest, fillvalue=(None, None))
+    return TrainingZipLongest
   elif strategy == 'refill':
     return tzip_refill
   elif strategy == 'interleave':

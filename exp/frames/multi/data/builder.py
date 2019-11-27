@@ -27,6 +27,7 @@ def build_dataloader(datasets_dir, ds, split, subset,
 
   ds_dir = join(datasets_dir, ds)
   transform = VideoTransform() if transform else VideoShapeTransform()
+
   ds = ARFramesDS(ds_dir,
       split=split, subset=subset, transform=transform,
       num_frames=num_frames, sampling=sampling, cache=cache,
