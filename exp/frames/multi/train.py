@@ -72,6 +72,8 @@ def build_loss_opt(cfg):
       momentum=cfg.opt_momentum, nesterov=cfg.opt_nesterov)
   elif cfg.opt == 'adam':
     opt = tf.keras.optimizers.Adam(learning_rate=cfg.opt_lr)
+  else:
+    raise ValueError(f'invalid opt={cfg.opt}')
   return loss_fn, opt
 
 @tf.function
