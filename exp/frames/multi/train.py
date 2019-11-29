@@ -34,17 +34,17 @@ class SubsetContext:
   def __init__(self, name, full_name, datasets_dir, run_dir, cfg):
     self.writer = tf.summary.create_file_writer(join(run_dir, name))
     self.tasks = []
-
+    batch_size = cfg.train_batch // len(cfg._dss)
     Task = namedtuple('Task', ('name', 'dl', 'loss', 'acc'))
     if name == 'trn':
       transform = cfg.dss_augment
       sampling = cfg.dss_sampling
-      batch_size = cfg.train_tbatch
+      # batch_size = cfg.train_tbatch
       shuffle = True
     else:
       transform = False
       sampling = 'fixed'
-      batch_size = cfg.train_ebatch
+      # batch_size = cfg.train_ebatch
       shuffle = False
     for ds in cfg._dss:
       dl = build_dataloader(datasets_dir=datasets_dir,
@@ -111,7 +111,7 @@ def train_epoch(epoch, tzip, extractor, model, loss_fn, opt, alphas, ctx):
 
 @tf.function
 def test_step(xs, ys_true, model, ctx):
-  ys_pred = model(xs, training=True)
+  ys_pred = model(xs)
   for y_true, y_pred, task in zip(ys_true, ys_pred, ctx.tasks):
     if y_true is not None:
       task.loss(y_true, y_pred)
@@ -188,8 +188,9 @@ class RunConfig(utils.BaseExperiment):
       # training
       train_strategy='shortest',
       train_epochs=1,
-      train_tbatch=16,
-      train_ebatch=16,
+      train_batch=32,
+      # train_tbatch=16,
+      # train_ebatch=16,
       # optimizer
       opt='sgd',
       opt_lr=1e-2,
