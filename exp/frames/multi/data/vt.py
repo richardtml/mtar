@@ -7,6 +7,7 @@ import numbers
 import numpy as np
 import PIL
 import scipy
+from tensorflow.keras.applications.resnet50 import preprocess_input
 from vidaug import augmentors as va
 
 
@@ -96,8 +97,9 @@ class VideoShapeTransform:
 
   def __call__(self, frames):
     frames = [frame for frame in self.seq(frames)]
-    frames = np.stack([np.asarray(frame) for frame in frames])
-    frames = np.divide(frames, 255, dtype=np.float32)
+    frames = np.stack([np.asarray(f, dtype=np.float32) for f in frames])
+    frames = preprocess_input(frames)
+    # frames = np.divide(frames, 255, dtype=np.float32)
     return frames
 
 class VideoTransform:
@@ -166,6 +168,7 @@ class VideoTransform:
 
   def __call__(self, frames):
     frames = [frame for frame in self.seq(frames)]
-    frames = np.stack([np.asarray(frame) for frame in frames])
-    frames = np.divide(frames, 255, dtype=np.float32)
+    frames = np.stack([np.asarray(f, dtype=np.float32) for f in frames])
+    frames = preprocess_input(frames)
+    # frames = np.divide(frames, 255, dtype=np.float32)
     return frames

@@ -147,8 +147,8 @@ def train(cfg):
   trn_zip = utils.build_tzip(cfg.train_strategy)
   tst_zip = utils.build_tzip('longest')
   loss_fn, opt = build_loss_opt(cfg)
-
   weights_dir = join(run_dir, 'weights')
+
   for epoch in trange(cfg.train_epochs, desc=' epochs', ncols=TQDM_NCOLS):
 
     train_epoch(epoch, trn_zip, extractor, model,
