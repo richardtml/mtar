@@ -15,7 +15,7 @@ class Conv(BaseAR):
     super(Conv, self).__init__(cfg, verbose)
     self.convs = []
     for i, filters in enumerate(cfg.model_conv_filters):
-      use_bias = not cfg.model_bn_in if i == 0 else False
+      use_bias = not cfg.model_bn_in if i == 0 else True
       conv = layers.Conv1D(
         filters=filters, kernel_size=3, padding='same',
         activation='relu', use_bias=use_bias, name=f'conv{i}')
