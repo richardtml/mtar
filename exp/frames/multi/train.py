@@ -176,8 +176,7 @@ class RunConfig(utils.BaseExperiment):
       model_rec_layers=1,
       model_rec_bi=0,
       model_rec_bi_merge='concat',
-      model_conv2d_filters=512,
-      model_conv1d_filters=512,
+      model_conv_filters=[128],
       model_dropout=0.5,
       model_ifc=0,
       # datasets

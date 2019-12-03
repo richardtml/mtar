@@ -17,7 +17,7 @@ from utils import get_model_class
 class RunConfig(BaseExperiment):
 
   def __init__(self,
-      batch=(1, 16, 512),
+      batch=(1, 16, 2048),
       # experiment
       run=None,
       exp='msframe',
@@ -30,8 +30,7 @@ class RunConfig(BaseExperiment):
       model_rec_layers=1,
       model_rec_bi=0,
       model_rec_bi_merge='concat',
-      model_conv2d_filters=160,
-      model_conv1d_filters=160,
+      model_conv_filters=[128],
       model_dropout=0.5,
       model_ifc=0,
       # datasets
