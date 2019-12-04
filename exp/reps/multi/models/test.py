@@ -27,9 +27,11 @@ class RunConfig(BaseExperiment):
       model_bn_out=0,
       model_rec_type='gru',
       model_rec_size=128,
+      model_rec_sizes=[128],
       model_rec_layers=1,
       model_rec_bi=0,
       model_rec_bi_merge='concat',
+      model_conv_filters=[128],
       model_conv2d_filters=160,
       model_conv1d_filters=160,
       model_dropout=0.5,
@@ -45,7 +47,7 @@ class RunConfig(BaseExperiment):
     )
 
   def __call__(self):
-    self._dss = utils.build_datasets(self)
+    self._dss = utils.build_datasets_cfg(self)
     test(self)
 
 
