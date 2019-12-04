@@ -1,6 +1,7 @@
 # Multi-task experiments
 
 include: "exp/mconv.smk"
+include: "exp/mconvrec.smk"
 include: "exp/mconv1drec.smk"
 include: "exp/mconv2d.smk"
 include: "exp/mconv2d1d.smk"
