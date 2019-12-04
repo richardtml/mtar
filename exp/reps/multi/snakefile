@@ -1,12 +1,13 @@
 # Multi-task experiments
 
-
+include: "exp/mconv.smk"
 include: "exp/mconv1drec.smk"
 include: "exp/mconv2d.smk"
 include: "exp/mconv2d1d.smk"
 include: "exp/mmean.smk"
 include: "exp/mrec.smk"
 include: "exp/msframe.smk"
+
 include: "exp/sconv.smk"
 include: "exp/sconvrec.smk"
 include: "exp/srec.smk"
