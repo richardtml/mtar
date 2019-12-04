@@ -10,6 +10,7 @@ rule rmrec:
     lr = config.get('lr', 0.01)
     rec_bi = config.get('model_rec_bi', False)
     epochs = config.get('epochs', 300)
+    dss_cache = config.get('dss_cache', False)
     recs_sizes = [[512], [256,128], [512,512]]
     strategies = ['shortest', 'longest']
     configs = list(product(recs_sizes, strategies))
@@ -30,6 +31,7 @@ rule rmrec:
         f" --train_epochs {epochs}"
         f" --opt_lr {lr}"
         f" --dss_sampling random"
+        f" --dss_cache {dss_cache}"
       )
       time.sleep(1)
       print()
