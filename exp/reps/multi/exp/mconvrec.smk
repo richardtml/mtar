@@ -11,7 +11,7 @@ rule rmconvrec:
     rec_bi = config.get('model_rec_bi', False)
     epochs = config.get('epochs', 300)
     dss_cache = config.get('dss_cache', False)
-    layers = [[[128], [128]], [[256], [256]]]
+    layers = [[[512], [512]], [[384], [384]], [[256], [256]], [[128], [128]]]
     strategies = ['shortest', 'longest']
     configs = list(product(layers, strategies))
     for layer, strategy in tqdm(configs,
