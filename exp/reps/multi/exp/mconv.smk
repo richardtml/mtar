@@ -31,6 +31,7 @@ rule rmconv:
         f" --train_epochs {epochs}"
         f" --opt_lr {lr}"
         f" --dss_sampling random"
+        f" --dss_cache"
       )
       time.sleep(1)
       print()
