@@ -12,7 +12,7 @@ rule rmconvrec:
     epochs = config.get('epochs', 300)
     dss_cache = config.get('dss_cache', False)
     layers = [[[512], [512]], [[384], [384]], [[256], [256]], [[128], [128]]]
-    strategies = ['shortest', 'longest']
+    strategies = ['longest']
     configs = list(product(layers, strategies))
     for layer, strategy in tqdm(configs,
         desc=f'EXP {rule}', ncols=75):
