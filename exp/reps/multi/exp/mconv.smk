@@ -9,8 +9,10 @@ rule rmconv:
   run:
     lr = config.get('lr', 0.01)
     epochs = config.get('epochs', 300)
-    convs_filters = [[128], [256], [256,128]]
-    strategies = ('shortest', 'longest')
+    #convs_filters = [[128], [256], [256,128]]
+    convs_filters = [[512], [384], [512,128], [384,128], [512,256]]
+    #strategies = ('shortest', 'longest')
+    strategies = ['longest']
     configs = list(product(convs_filters, strategies))
     for conv_filters, strategy in tqdm(
         configs, desc=f'EXP {rule}', ncols=75):
