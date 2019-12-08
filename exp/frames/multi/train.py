@@ -3,13 +3,14 @@
 
 import os
 import random
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 from os.path import join
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import fire
 import mlflow
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 import torch
 from tqdm import tqdm, trange
@@ -32,6 +33,7 @@ TQDM_NCOLS = 100
 class SubsetContext:
 
   def __init__(self, name, full_name, datasets_dir, run_dir, cfg):
+    self.name = name
     self.writer = tf.summary.create_file_writer(join(run_dir, name))
     self.tasks = []
     batch_size = cfg.train_batch // len(cfg._dss)
@@ -73,14 +75,22 @@ def build_loss_opt(cfg):
     raise ValueError(f'invalid opt={cfg.opt}')
   return loss_fn, opt
 
-@tf.function
-def compute_reps(xs, extractor):
+def build_extractor():
+  extractor = models.load_cnn_extractor()
+  return tf.function(extractor)
+  # @tf.function
+  # def extract(x):
+  #   return extractor(x)
+  # return extract
+
+def compute_reps(xs, extractor, batch_size=32):
   reps = []
   for x in xs:
     if x is not None:
       n, f, h, w, c = tf.unstack(x.shape)
       x = tf.reshape(x, (n*f, h, w, c))
-      x = extractor(x)
+      x = tf.concat([extractor(x[i:i+batch_size])
+          for i in range(0, n*f, batch_size)], axis=0)
       x = tf.reshape(x, (n, f, -1))
       reps.append(x)
     else:
@@ -117,7 +127,7 @@ def test_step(xs, ys_true, model, ctx):
       task.loss(y_true, y_pred)
       task.acc(y_true, y_pred)
 
-def test_epoch(epoch, tzip, extractor, model, trn_ctx, tst_ctx):
+def test_epoch(epoch, tzip, extractor, model, trn_ctx, tst_ctx, metrics):
   for batches in tqdm(tzip(*tst_ctx.dls), leave=False,
       desc='   test', ncols=TQDM_NCOLS):
     xs, ys_true = zip(*batches)
@@ -132,13 +142,17 @@ def test_epoch(epoch, tzip, extractor, model, trn_ctx, tst_ctx):
         task.acc.reset_states()
         tf.summary.scalar(f'loss/{task.name}', loss, epoch)
         tf.summary.scalar(f'acc/{task.name}', acc, epoch)
+        if ctx.name == 'tst':
+          metrics['epoch'].append(epoch)
+          metrics[f'{task.name}_loss'].append(loss)
+          metrics[f'{task.name}_acc'].append(acc)
 
 def train(cfg):
   print(f"Trainig {cfg.run}")
   run_dir = join(config.get('RESULTS_DIR'), cfg.exp, cfg.run)
   cfg.save(run_dir)
 
-  extractor = models.load_cnn_extractor()
+  extractor = build_extractor()
   ModelClass = models.get_model_class(cfg.model)
   model = ModelClass(cfg)
 
@@ -148,6 +162,7 @@ def train(cfg):
   tst_zip = utils.build_tzip('longest')
   loss_fn, opt = build_loss_opt(cfg)
   weights_dir = join(run_dir, 'weights')
+  metrics = defaultdict(list)
 
   for epoch in trange(cfg.train_epochs, desc=' epochs', ncols=TQDM_NCOLS):
 
@@ -155,10 +170,13 @@ def train(cfg):
       loss_fn, opt, cfg.opt_alphas, trn_ctx)
 
     if cfg.eval_tst_freq and ((epoch + 1) % cfg.eval_tst_freq == 0):
-      test_epoch(epoch, tst_zip, extractor, model, trn_ctx, tst_ctx)
+      test_epoch(epoch, tst_zip, extractor, model, trn_ctx, tst_ctx, metrics)
 
     if cfg.save_freq and ((epoch + 1) % cfg.save_freq == 0):
       model.save_weights(join(weights_dir, f'{epoch:03d}.ckpt'))
+
+  df = pd.DataFrame.from_records(metrics, index='epoch')
+  df.to_csv(join(run_dir, 'metrics.csv'))
 
 
 class RunConfig(utils.BaseExperiment):
@@ -192,7 +210,7 @@ class RunConfig(utils.BaseExperiment):
       # train_ebatch=16,
       # optimizer
       opt='sgd',
-      opt_lr=1e-2,
+      opt_lr=1e-3,
       opt_momentum=0.0,
       opt_nesterov=False,
       opt_alphas=[1, 1],
@@ -213,8 +231,16 @@ class RunConfig(utils.BaseExperiment):
 
   def __call__(self):
     self._dss = utils.build_datasets_cfg(self)
+    dss = ''.join([ds.name[0] for ds in self._dss])
+    self.run = (
+      f'{timestamp()}'
+      f'-{dss}'
+      f'-{self.model}'
+      f'-{self.train_strategy[0]}'
+      f'-{self.dss_sampling[0]}'
+    )
     if len(self._dss) == 0:
-      print('You must choose at least one task to train :).')
+      print('You must choose at least one task to train :)')
       return
     train(self)
 
