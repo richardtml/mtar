@@ -76,7 +76,7 @@ python-dotenv==0.10.3
 python-editor==1.0.4
 pytz==2019.3
 PyWavelets==1.1.1
-PyYAML==5.1.2
+PyYAML==5.4
 querystring-parser==1.2.4
 ratelimiter==1.2.0.post0
 requests==2.22.0
