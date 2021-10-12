@@ -56,7 +56,7 @@ more-itertools==7.2.0
 networkx==2.4
 numcodecs==0.6.3
 numpy==1.17.2
-opencv-contrib-python==4.1.2.30
+opencv-contrib-python==4.2.0.32
 opt-einsum==3.1.0
 pandas==0.25.2
 parso==0.5.1
